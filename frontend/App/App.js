@@ -66,6 +66,8 @@ function BottomTabs() {
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
 
+          const iconSize = focused ? 28 : 24;
+
           if (route.name === "ChatTab") {
             iconName = focused ? "chatbubbles" : "chatbubbles-outline";
           } else if (route.name === "ContactsTab") {
@@ -78,7 +80,7 @@ function BottomTabs() {
             iconName = focused ? "person" : "person-outline";
           }
 
-          return <Ionicons name={iconName} size={size} color={color} />;
+          return <Ionicons name={iconName} size={iconSize} color={color} />;
         },
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: "gray",
@@ -97,7 +99,7 @@ function BottomTabs() {
       <Tab.Screen
         name="ExploreTab"
         component={ExploreStack}
-        options={{ title: "Nhật ký", headerShown: false }}
+        options={{ title: "Khám phá", headerShown: false }}
       />
       <Tab.Screen
         name="JournalTab"
