@@ -73,7 +73,7 @@ function BottomTabs() {
           } else if (route.name === "ExploreTab") {
             iconName = focused ? "grid" : "grid-outline";
           } else if (route.name === "JournalTab") {
-            iconName = focused ? "timetime" : "time-outline";
+            iconName = focused ? "time" : "time-outline";
           } else if (route.name === "PersonalTab") {
             iconName = focused ? "person" : "person-outline";
           }
