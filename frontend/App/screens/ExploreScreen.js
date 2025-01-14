@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-export default function DiscoverScreen() {
+export default function ExploreScreen() {
   const menuItems = [
     {
       id: 1,
@@ -103,29 +103,6 @@ export default function DiscoverScreen() {
           </TouchableOpacity>
         ))}
       </ScrollView>
-
-      {/* Bottom Navigation */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="chatbubbles-outline" size={24} color="#666" />
-          <View style={styles.badge}>
-            <Text style={styles.badgeText}>1</Text>
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="people-outline" size={24} color="#666" />
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.navItem, styles.activeNavItem]}>
-          <Ionicons name="apps" size={24} color="#1877f2" />
-          <Text style={styles.activeNavText}>Khám phá</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="time-outline" size={24} color="#666" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="person-outline" size={24} color="#666" />
-        </TouchableOpacity>
-      </View>
     </SafeAreaView>
   );
 }
