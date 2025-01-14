@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "App",
-    "slug": "App",
+    "name": "app",
+    "slug": "snack-a1de108d-30bf-4177-a14a-9e86450cf29b",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
