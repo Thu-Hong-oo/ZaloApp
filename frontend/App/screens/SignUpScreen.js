@@ -49,7 +49,8 @@ export default function SignUpScreen({navigation, route}){
          {/* Button */}
         <TouchableOpacity 
         disabled={!isButtonEnabled} 
-        onPress={()=> setIsModalVisible(true)}
+        onPress={()=> {setIsModalVisible(true);
+        navigation.navigate()}}
         style={{backgroundColor: isButtonEnabled?'#0a64f4':'#b0c4de', width:'90%', padding:15, borderRadius:50, alignSelf:'center', marginTop:20, alignItems:'center'}}>
         <Text style={{color:'white', fontWeight:500, fontSize:15}}>Tiếp tục</Text>
 
@@ -66,7 +67,7 @@ export default function SignUpScreen({navigation, route}){
             <Text style={{fontSize:16, marginBottom:15, marginTop:15}}>Zalo sẽ gửi mã xác thực cho bạn qua số điện thoại này</Text>
         </View>
             <TouchableOpacity style={{borderBottomWidth:2, borderTopWidth:2, width:'100%', padding:10, borderColor:'#f0f0f0', alignItems:'center'}}
-            onPress={()=> {setIsModalVisible(false); navigation.navigate('')}}
+            onPress={()=> {setIsModalVisible(false); navigation.navigate('otp',{phoneNumber:phoneNumber})}}
             >
                 <Text style={{fontWeight:500, color:'#0a64f4', fontSize:16}}>
                     Tiếp tục
