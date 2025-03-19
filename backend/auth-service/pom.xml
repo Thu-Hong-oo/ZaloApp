@@ -1,148 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<<<<<<< HEAD
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>
-		4.0.0
-	</modelVersion>
-	<parent>
-		<groupId>
-			org.springframework.boot
-		</groupId>
-		<artifactId>
-			spring-boot-starter-parent
-		</artifactId>
-		<version>
-			3.4.3
-		</version>
-		<relativePath />
-		<!-- lookup parent from repository -->
-	</parent>
-	<groupId>
-		com.example
-	</groupId>
-	<artifactId>
-		demo
-	</artifactId>
-	<version>
-		0.0.1-SNAPSHOT
-	</version>
-	<name>
-		demo
-	</name>
-	<description>
-		Demo project for Spring Boot
-	</description>
-	<url />
-	<licenses>
-		<license />
-	</licenses>
-	<developers>
-		<developer />
-	</developers>
-	<scm>
-		<connection />
-		<developerConnection />
-		<tag />
-		<url />
-	</scm>
-	<properties>
-		<java.version>
-			17
-		</java.version>
-	</properties>
-	<dependencies>
-		<dependency>
-			<groupId>
-				org.springframework.boot
-			</groupId>
-			<artifactId>
-				spring-boot-starter-webflux
-			</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>
-				org.springframework.boot
-			</groupId>
-			<artifactId>
-				spring-boot-devtools
-			</artifactId>
-			<scope>
-				runtime
-			</scope>
-			<optional>
-				true
-			</optional>
-		</dependency>
-		<dependency>
-			<groupId>
-				org.projectlombok
-			</groupId>
-			<artifactId>
-				lombok
-			</artifactId>
-			<optional>
-				true
-			</optional>
-		</dependency>
-		<dependency>
-			<groupId>
-				org.springframework.boot
-			</groupId>
-			<artifactId>
-				spring-boot-starter-test
-			</artifactId>
-			<scope>
-				test
-			</scope>
-		</dependency>
-		<dependency>
-			<groupId>
-				io.projectreactor
-			</groupId>
-			<artifactId>
-				reactor-test
-			</artifactId>
-			<scope>
-				test
-			</scope>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.twilio.sdk/twilio -->
-		<dependency>
-			<groupId>
-				com.twilio.sdk
-			</groupId>
-			<artifactId>
-				twilio
-			</artifactId>
-			<version>
-				10.7.0
-			</version>
-		</dependency>
-		<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
-</dependency>
-
-	</dependencies>
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>
-					org.apache.maven.plugins
-				</groupId>
-				<artifactId>
-					maven-compiler-plugin
-				</artifactId>
-				<configuration>
-					<annotationProcessorPaths>
-						<path>
-							<groupId>
-								org.projectlombok
-							</groupId>
-							<artifactId>
-								lombok
-							</artifactId>
-=======
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
@@ -152,10 +8,10 @@
 		<version>3.4.3</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.example.authservice</groupId>
-	<artifactId>demo</artifactId>
+	<groupId>com.zalo.auth</groupId>
+	<artifactId>auth-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>demo</name>
+	<name>auth-service</name>
 	<description>Demo project for Spring Boot</description>
 	<url/>
 	<licenses>
@@ -173,119 +29,47 @@
 	<properties>
 		<java.version>17</java.version>
 	</properties>
-	 <dependencies>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-mail</artifactId>
-        </dependency>
-        
-        <!-- JWT -->
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-api</artifactId>
-            <version>${jjwt.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-impl</artifactId>
-            <version>${jjwt.version}</version>
-            <scope>runtime</scope>
-        </dependency>
+	<dependencies>
 		<dependency>
-    <groupId>org.mariadb.jdbc</groupId>
-    <artifactId>mariadb-java-client</artifactId>
-    <version>3.1.4</version> <!-- Chọn phiên bản mới nhất nếu cần -->
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter</artifactId>
+		</dependency>
+	<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webflux</artifactId>
+		</dependency>
+
+		<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
 </dependency>
-     <dependency>
-        <groupId>io.jsonwebtoken</groupId>
-        <artifactId>jjwt-api</artifactId>
-        <version>0.11.2</version>
-    </dependency>
-    <dependency>
-        <groupId>io.jsonwebtoken</groupId>
-        <artifactId>jjwt-impl</artifactId>
-        <version>0.11.2</version>
-        <scope>runtime</scope>
-    </dependency>
-    <dependency>
-        <groupId>io.jsonwebtoken</groupId>
-        <artifactId>jjwt-jackson</artifactId>
-        <version>0.11.2</version>
-        <scope>runtime</scope>
-    </dependency>
-        
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-		 <dependency>
-        <groupId>io.jsonwebtoken</groupId>
-        <artifactId>jjwt</artifactId>
-        <version>0.9.1</version>
-    </dependency>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.security</groupId>
-            <artifactId>spring-security-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-		 <!-- Google Authenticator for 2FA -->
-    <dependency>
-        <groupId>com.warrenstrange</groupId>
-        <artifactId>googleauth</artifactId>
-        <version>1.5.0</version>
-    </dependency>
-    
-    <!-- QR Code Generator -->
-    <dependency>
-        <groupId>com.google.zxing</groupId>
-        <artifactId>core</artifactId>
-        <version>3.5.1</version>
-    </dependency>
-    <dependency>
-        <groupId>com.google.zxing</groupId>
-        <artifactId>javase</artifactId>
-        <version>3.5.1</version>
-    </dependency>
-    
-    <!-- Swagger OpenAPI -->
-    <dependency>
-        <groupId>org.springdoc</groupId>
-        <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-        <version>2.1.0</version>
-    </dependency>
-    </dependencies>
+	<dependency>
+			<groupId>com.twilio.sdk</groupId>
+			<artifactId>twilio</artifactId>
+			<version>7.34.0</version>
+		</dependency>
+		<dependency>
+			<groupId>io.projectreactor</groupId>
+			<artifactId>reactor-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-devtools</artifactId>
+			<scope>runtime</scope>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
 
 	<build>
 		<plugins>
@@ -297,29 +81,11 @@
 						<path>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
->>>>>>> 12e8d6b (UPDATE Register and Login api for auth-service)
 						</path>
 					</annotationProcessorPaths>
 				</configuration>
 			</plugin>
 			<plugin>
-<<<<<<< HEAD
-				<groupId>
-					org.springframework.boot
-				</groupId>
-				<artifactId>
-					spring-boot-maven-plugin
-				</artifactId>
-				<configuration>
-					<excludes>
-						<exclude>
-							<groupId>
-								org.projectlombok
-							</groupId>
-							<artifactId>
-								lombok
-							</artifactId>
-=======
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
@@ -327,15 +93,11 @@
 						<exclude>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
->>>>>>> 12e8d6b (UPDATE Register and Login api for auth-service)
 						</exclude>
 					</excludes>
 				</configuration>
 			</plugin>
 		</plugins>
 	</build>
-<<<<<<< HEAD
-=======
 
->>>>>>> 12e8d6b (UPDATE Register and Login api for auth-service)
 </project>
