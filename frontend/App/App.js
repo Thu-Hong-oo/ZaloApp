@@ -6,7 +6,11 @@ import { Ionicons } from "@expo/vector-icons";
 import COLORS from "./components/colors";
 import "@expo/metro-runtime";
 
-import Chat from "./screens/WelcomeScreen";
+// Import screens
+import WelcomeScreen from "./screens/WelcomeScreen";
+import LoginScreen from "./screens/LoginScreen";
+import SignUpScreen from "./screens/SignUpScreen";
+import ChatScreen from "./screens/ChatScreen";
 import Contacts from "./screens/ContactsScreen";
 import Explore from "./screens/ExploreScreen";
 import Journal from "./screens/JournalScreen";
@@ -15,14 +19,26 @@ import Personal from "./screens/PersonalScreen";
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
+// Auth stack
+function AuthStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Welcome" component={WelcomeScreen} />
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="SignUp" component={SignUpScreen} />
+    </Stack.Navigator>
+  );
+}
+
 // Chat stack
 function ChatStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Chat" component={Chat} />
+      <Stack.Screen name="Chat" component={ChatScreen} />
     </Stack.Navigator>
   );
 }
+
 // Contacts stack
 function ContactsStack() {
   return (
@@ -116,9 +132,15 @@ function BottomTabs() {
 }
 
 export default function App() {
+  const [isLoggedIn, setIsLoggedIn] = React.useState(false);
+
   return (
     <NavigationContainer>
-      <BottomTabs />
+      {!isLoggedIn ? (
+        <AuthStack />
+      ) : (
+        <BottomTabs />
+      )}
     </NavigationContainer>
   );
 }

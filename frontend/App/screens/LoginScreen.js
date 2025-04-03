@@ -8,12 +8,13 @@ import {
   SafeAreaView,
   StatusBar,
 } from 'react-native';
-
+import { Ionicons } from '@expo/vector-icons';
+import {useNavigation} from '@react-navigation/native';
 const LoginScreen = () => {
   const [phoneNumber, setPhoneNumber] = useState('012345678');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-
+  const navigation = useNavigation();
   return (
     <SafeAreaView style={styles.container}>
      {/* <StatusBar barStyle="light-content" backgroundColor="#0068FF" /> */}
@@ -22,8 +23,8 @@ const LoginScreen = () => {
       <View style={styles.header}>
         {/* Header content */}
         <View style={styles.headerContent}>
-          <TouchableOpacity style={styles.backButton}>
-            <Text style={styles.backButtonText}>←</Text>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Đăng nhập</Text>
         </View>

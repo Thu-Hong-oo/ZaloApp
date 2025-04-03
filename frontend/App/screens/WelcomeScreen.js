@@ -9,10 +9,11 @@ import {
   StatusBar,
   Dimensions,
 } from 'react-native';
-
+import {useNavigation} from '@react-navigation/native';
 const { width } = Dimensions.get('window');
 
 const OnboardingScreen = () => {
+    const navigation = useNavigation();
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
@@ -82,11 +83,11 @@ const OnboardingScreen = () => {
       
       {/* Buttons */}
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.loginButton} activeOpacity={0.8}>
+        <TouchableOpacity style={styles.loginButton} activeOpacity={0.8} onPress={() => navigation.navigate('Login')}>
           <Text style={styles.loginButtonText}>Đăng nhập</Text>
         </TouchableOpacity>
         
-        <TouchableOpacity style={styles.registerButton} activeOpacity={0.8}>
+        <TouchableOpacity style={styles.registerButton} activeOpacity={0.8} onPress={() => navigation.navigate('SignUp')}>
           <Text style={styles.registerButtonText}>Tạo tài khoản mới</Text>
         </TouchableOpacity>
       </View>
