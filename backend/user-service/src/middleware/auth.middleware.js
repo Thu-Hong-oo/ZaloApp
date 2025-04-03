@@ -1,44 +1,91 @@
-const jwt = require('jsonwebtoken');
+const axios = require('axios');
 
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
         if (!authHeader) {
-            return res.status(401).json({ message: 'No token provided' });
+            return res.status(401).json({ 
+                success: false,
+                message: 'No token provided'
+            });
         }
 
         const token = authHeader.split(' ')[1];
         if (!token) {
-            return res.status(401).json({ message: 'Invalid token format' });
+            return res.status(401).json({
+                success: false, 
+                message: 'Invalid token format'
+            });
         }
 
-        console.log('Using JWT secret:', global.jwtSecret); // Debug log
-        console.log('Token to verify:', token); // Debug log
+        try {
+            // Forward request to auth-service with the same token
+            const response = await axios.get('http://localhost:8080/api/auth/validate-token', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
 
-        const decoded = jwt.verify(token, global.jwtSecret);
-        console.log('Decoded token:', decoded); // Debug log
-
-        // Kiểm tra xem token có chứa phone không
-        if (!decoded.sub) {
-            return res.status(401).json({ message: 'Token does not contain phone number' });
+            if (response.data && response.data.success) {
+                // Token is valid, extract user info
+                req.user = {
+                    phone: response.data.data.phone,
+                    role: response.data.data.role || 'user'
+                };
+                next();
+            } else {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Invalid token'
+                });
+            }
+        } catch (error) {
+            console.error('Token validation error:', error.response?.data || error.message);
+            return res.status(401).json({
+                success: false,
+                message: 'Token validation failed',
+                error: error.response?.data?.message || error.message
+            });
         }
-
-        // Gán phone vào request để các middleware và controller sau có thể sử dụng
-        req.user = {
-            phone: decoded.sub
-        };
-
-        next();
     } catch (error) {
-        console.error('Token verification error:', error); // Debug log
-        if (error.name === 'JsonWebTokenError') {
-            return res.status(401).json({ message: 'Invalid token signature' });
-        } else if (error.name === 'TokenExpiredError') {
-            return res.status(401).json({ message: 'Token expired' });
-        } else {
-            return res.status(401).json({ message: 'Invalid token' });
-        }
+        console.error('Auth middleware error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Authentication failed',
+            error: error.message
+        });
     }
 };
 
-module.exports = authMiddleware; 
+// Middleware to check if user is admin
+const isAdmin = async (req, res, next) => {
+    try {
+        if (!req.user || !req.user.role) {
+            return res.status(403).json({
+                success: false,
+                message: 'Access denied: User role not found'
+            });
+        }
+
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Access denied: Admin role required'
+            });
+        }
+
+        next();
+    } catch (error) {
+        console.error('Admin check error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error checking admin privileges',
+            error: error.message
+        });
+    }
+};
+
+module.exports = {
+    authMiddleware,
+    isAdmin
+}; 
