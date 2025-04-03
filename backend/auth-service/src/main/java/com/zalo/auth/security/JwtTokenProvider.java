@@ -10,17 +10,21 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.Base64;
 
 @Component
 public class JwtTokenProvider {
 
     @Autowired
     private JwtConfig jwtConfig;
+
+    private byte[] getSigningKey() {
+        return Base64.getDecoder().decode(jwtConfig.jwtSecret());
+    }
 
     public String generateToken(Authentication authentication) {
         String username = authentication.getName();
@@ -38,7 +42,7 @@ public class JwtTokenProvider {
                 .setSubject(username)
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
-                .signWith(SignatureAlgorithm.HS256, jwtConfig.jwtSecret().getBytes())
+                .signWith(SignatureAlgorithm.HS256, getSigningKey())
                 .compact();
     }
 
@@ -50,13 +54,13 @@ public class JwtTokenProvider {
                 .setSubject(username)
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
-                .signWith(SignatureAlgorithm.HS256, jwtConfig.jwtSecret().getBytes())
+                .signWith(SignatureAlgorithm.HS256, getSigningKey())
                 .compact();
     }
 
     public String getUsernameFromToken(String token) {
         Claims claims = Jwts.parser()
-                .setSigningKey(jwtConfig.jwtSecret().getBytes())
+                .setSigningKey(getSigningKey())
                 .parseClaimsJws(token)
                 .getBody();
         return claims.getSubject();
@@ -64,13 +68,12 @@ public class JwtTokenProvider {
 
     public Authentication getAuthentication(String token) {
         Claims claims = Jwts.parser()
-                .setSigningKey(jwtConfig.jwtSecret().getBytes())
+                .setSigningKey(getSigningKey())
                 .parseClaimsJws(token)
                 .getBody();
     
         String username = claims.getSubject();
     
-        // Lấy danh sách authorities dưới dạng List<String>
         Object authoritiesObj = claims.get("authorities");
         List<String> authorities = authoritiesObj instanceof List ? (List<String>) authoritiesObj : new ArrayList<>();
     
@@ -84,7 +87,7 @@ public class JwtTokenProvider {
     public boolean validateToken(String token) {
         try {
             Jwts.parser()
-                .setSigningKey(jwtConfig.jwtSecret().getBytes())
+                .setSigningKey(getSigningKey())
                 .parseClaimsJws(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {

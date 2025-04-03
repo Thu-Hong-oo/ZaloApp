@@ -167,7 +167,7 @@ public class ZaloAuthServiceImpl implements ZaloAuthService {
     }
 
     private Mono<AuthResponse> tryRegistrationEndpoints(UserRegisterRequest request) {
-        log.info("Bắt đầu đăng ký người dùng");
+        log.info("Bắt đầu đăng ký người dùng với số điện thoại: {}", request.getPhone());
         
         return webClientBuilder.build()
             .post()
@@ -199,63 +199,73 @@ public class ZaloAuthServiceImpl implements ZaloAuthService {
                     ))
             )
             .bodyToMono(UserResponse.class)
-            .doOnSuccess(response -> log.info("Đăng ký thành công cho số điện thoại: {}", request.getPhone()))
-            .doOnError(error -> {
-                if (error instanceof ResponseStatusException) {
-                    log.warn("Không thể đăng ký: {}", error.getMessage());
-                } else {
-                    log.error("Lỗi khi đăng ký cho số điện thoại {}: {}", 
-                        request.getPhone(), error.getMessage());
+            .doOnNext(response -> {
+                log.info("Nhận được phản hồi từ user service: {}", response);
+                if (!response.isSuccess()) {
+                    log.error("Đăng ký thất bại: {}", response.getMessage());
                 }
             })
+            .flatMap(response -> {
+                if (!response.isSuccess()) {
+                    return Mono.error(new RuntimeException(response.getMessage() != null ? 
+                        response.getMessage() : "Đăng ký thất bại"));
+                }
+                if (response.getData() == null) {
+                    return Mono.error(new RuntimeException("Không nhận được thông tin người dùng"));
+                }
+                return generateAuthTokens(response.getData().getPhone());
+            })
+            .doOnError(error -> log.error("Lỗi trong quá trình đăng ký: {}", error.getMessage()))
             .retryWhen(Retry.backoff(3, Duration.ofSeconds(1))
                 .filter(throwable -> !(throwable instanceof ResponseStatusException))
                 .doBeforeRetry(signal -> 
                     log.info("Đang thử lại lần {}/3", signal.totalRetries() + 1)
                 )
-            )
-            .onErrorResume(ResponseStatusException.class, error -> {
-                if (error.getStatusCode() == HttpStatus.CONFLICT) {
-                    return Mono.error(error); // Trả về lỗi conflict ngay lập tức
-                }
-                return Mono.error(new RuntimeException(error.getReason()));
-            })
-            .flatMap(userResponse -> generateAuthTokens(userResponse.getPhone()));
+            );
     }
 
     @Override
-    public Mono<AuthResponse> login(AuthRequest authRequest) {
-        log.info("Đang thử đăng nhập cho số điện thoại: {}", authRequest.getPhoneNumber());
+    public Mono<AuthResponse> login(LoginRequest request) {
+        log.info("Attempting login for phone: {}", request.getPhone());
         
-        return webClientBuilder.build().post()
-                .uri("http://" + userServiceName + "/api/users/login")
-                .bodyValue(authRequest)
-                .exchangeToMono(response -> {
-                    log.info("Trạng thái phản hồi đăng nhập: {}", response.statusCode());
+        return webClientBuilder.build()
+                .get()
+                .uri("http://" + userServiceName + "/api/users/" + request.getPhone())
+                .header("x-service", "auth-service")
+                .retrieve()
+                .bodyToMono(UserResponse.class)
+                .flatMap(response -> {
+                    log.info("Received response from user service: {}", response);
                     
-                    if (response.statusCode().is2xxSuccessful()) {
-                        return response.bodyToMono(UserResponse.class)
-                                .doOnNext(user -> log.info("Đăng nhập thành công cho người dùng: {}", user.getPhone()))
-                                .flatMap(user -> generateAuthTokens(user.getPhone()));
+                    if (!response.isSuccess() || response.getData() == null) {
+                        log.error("User service returned error or null data");
+                        return Mono.just(AuthResponse.error("Số điện thoại chưa được đăng ký"));
                     }
                     
-                    if (response.statusCode().value() == 401) {
-                        return Mono.error(new UserNotFoundException("Số điện thoại hoặc mật khẩu không đúng"));
+                    UserData userData = response.getData();
+                    if (userData.getPassword() == null) {
+                        log.error("User password is null");
+                        return Mono.just(AuthResponse.error("Lỗi xác thực"));
                     }
                     
-                    return response.bodyToMono(String.class)
-                            .flatMap(error -> {
-                                log.error("Phản hồi lỗi đăng nhập: {}", error);
-                                return Mono.error(new RuntimeException("Lỗi khi đăng nhập: " + error));
-                            });
+                    if (passwordEncoder.matches(request.getPassword(), userData.getPassword())) {
+                        log.info("Password matches, generating tokens");
+                        return generateAuthTokens(request.getPhone());
+                    }
+                    
+                    log.info("Password does not match");
+                    return Mono.just(AuthResponse.error("Mật khẩu không đúng"));
                 })
-                .onErrorResume(e -> {
-                    log.error("Lỗi đăng nhập: {}", e.getMessage());
-                    if (e instanceof UserNotFoundException) {
-                        return Mono.error(e);
-                    }
-                    return Mono.error(new RuntimeException("Lỗi trong quá trình đăng nhập: " + e.getMessage()));
-                });
+                .onErrorResume(WebClientResponseException.NotFound.class, 
+                    e -> {
+                        log.error("User not found: {}", e.getMessage());
+                        return Mono.just(AuthResponse.error("Số điện thoại chưa được đăng ký"));
+                    })
+                .onErrorResume(Exception.class, 
+                    e -> {
+                        log.error("Login error: {}", e.getMessage());
+                        return Mono.just(AuthResponse.error(e.getMessage()));
+                    });
     }
 
     @Override
@@ -312,13 +322,11 @@ public class ZaloAuthServiceImpl implements ZaloAuthService {
         String token = jwtTokenProvider.generateToken(authentication);
 
         return createRefreshToken(phoneNumber)
-                .map(refreshToken -> {
-                    AuthResponse authResponse = new AuthResponse();
-                    authResponse.setPhoneNumber(phoneNumber);
-                    authResponse.setAccessToken(token);
-                    authResponse.setRefreshToken(refreshToken.getToken());
-                    return authResponse;
-                });
+                .map(refreshToken -> new AuthResponse(
+                    phoneNumber,
+                    token,
+                    refreshToken.getToken()
+                ));
     }
 
     private Mono<Authentication> authenticateUser(String phoneNumber, String password) {
