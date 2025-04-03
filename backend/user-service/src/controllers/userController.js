@@ -3,6 +3,7 @@ const { validationResult } = require('express-validator');
 const AWS = require('aws-sdk');
 const dotenv = require('dotenv');
 const { s3, BUCKET_NAME } = require('../config/aws');
+const userService = require('../services/user.service');
 
 // Load environment variables
 dotenv.config();
@@ -47,40 +48,45 @@ const getUserByPhone = async (phone) => {
 
 // Register new user
 const registerUser = async (userData) => {
-    console.log('Processing registration for user:', userData);
+    console.log('Processing registration for user:', {...userData, password: '[HIDDEN]'});
 
     if (!userData.phone || !userData.name || !userData.password) {
         throw new Error('Missing required fields');
     }
 
-    // Check if user already exists
-    const existingUser = await getUserByPhone(userData.phone);
-    if (existingUser) {
-        throw new Error('User already exists');
-    }
-
-    const params = {
-        TableName: process.env.DYNAMODB_TABLE_NAME,
-        Item: {
-            phone: userData.phone,
-            password: await bcrypt.hash(userData.password, 10),
-            name: userData.name,
-            status: 'offline',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        }
-    };
-
     try {
+        // Hash password before creating user
+        const hashedPassword = await bcrypt.hash(userData.password, 10);
+        
+        const params = {
+            TableName: process.env.DYNAMODB_TABLE_NAME,
+            Item: {
+                phone: userData.phone,
+                password: hashedPassword,
+                name: userData.name,
+                status: 'offline',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            }
+        };
+
         await dynamoDB.put(params).promise();
+        
+        // Return response in the format auth service expects
         return {
-            phone: params.Item.phone,
-            accessToken: null,
-            refreshToken: null,
-            error: null
+            success: true,
+            message: 'Đăng ký thành công',
+            data: {
+                phone: userData.phone,
+                name: userData.name,
+                status: 'offline'
+            }
         };
     } catch (error) {
         console.error('Error registering user:', error);
+        if (error.code === 'ConditionalCheckFailedException') {
+            throw new Error('User already exists');
+        }
         throw error;
     }
 };
@@ -202,28 +208,43 @@ const updateStatus = async (req, res) => {
             });
         }
 
+        console.log('Updating status for user:', req.user.phone, 'New status:', req.body.status);
+
         const params = {
             TableName: process.env.DYNAMODB_TABLE_NAME,
             Key: {
                 phone: req.user.phone
             },
-            UpdateExpression: 'SET status = :status',
+            UpdateExpression: 'SET #userStatus = :status, updatedAt = :updatedAt',
+            ExpressionAttributeNames: {
+                '#userStatus': 'status'
+            },
             ExpressionAttributeValues: {
-                ':status': req.body.status
-            }
+                ':status': req.body.status,
+                ':updatedAt': new Date().toISOString()
+            },
+            ReturnValues: 'ALL_NEW'
         };
 
-        await dynamoDB.update(params).promise();
+        console.log('DynamoDB update params:', JSON.stringify(params, null, 2));
+
+        const result = await dynamoDB.update(params).promise();
+        console.log('Update result:', JSON.stringify(result, null, 2));
 
         res.json({
             success: true,
-            message: 'Status updated successfully'
+            message: 'Status updated successfully',
+            data: {
+                phone: req.user.phone,
+                status: req.body.status
+            }
         });
     } catch (error) {
         console.error('Error updating status:', error);
         res.status(500).json({
             success: false,
-            message: 'Error updating status'
+            message: 'Lỗi cập nhật trạng thái',
+            error: error.message
         });
     }
 };

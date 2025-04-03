@@ -11,7 +11,8 @@ const {
     updateStatus,
     changePassword,
     searchUsers,
-    getUserProfile
+    getUserProfile,
+    getUserByPhone
 } = require('../controllers/userController');
 
 const upload = multer({
@@ -34,11 +35,22 @@ router.post('/register', [
         console.error('Registration error:', error);
         if (error.message === 'User already exists') {
             res.status(409).json({ 
-                error: 'Số điện thoại đã được đăng ký'
+                success: false,
+                message: 'Số điện thoại đã được đăng ký',
+                data: null
+            });
+        } else if (error.message === 'Missing required fields') {
+            res.status(400).json({
+                success: false,
+                message: 'Thiếu thông tin bắt buộc',
+                data: null
             });
         } else {
             res.status(500).json({ 
-                error: 'Lỗi hệ thống, vui lòng thử lại sau'
+                success: false,
+                message: 'Lỗi hệ thống, vui lòng thử lại sau',
+                data: null,
+                error: error.message
             });
         }
     }
@@ -72,5 +84,35 @@ router.put('/password',
 
 // Search users
 router.get('/search', authMiddleware, searchUsers);
+
+// Get user by phone (for auth service)
+router.get('/:phone', async (req, res) => {
+    try {
+        const { phone } = req.params;
+        const user = await getUserByPhone(phone);
+        
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'Người dùng không tồn tại',
+                data: null
+            });
+        }
+
+        return res.json({
+            success: true,
+            message: 'Lấy thông tin người dùng thành công',
+            data: user
+        });
+    } catch (error) {
+        console.error('Get user error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Lỗi hệ thống, vui lòng thử lại sau',
+            data: null,
+            error: error.message
+        });
+    }
+});
 
 module.exports = router; 

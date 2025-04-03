@@ -38,11 +38,11 @@ Content-Type: application/json
 
 ### Lấy thông tin profile
 GET http://localhost:3000/api/users/profile
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzNzc2MzE5LCJpYXQiOjE3NDM2ODk5MTksImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.8F-8TX9SsdUAecejilMb5ODKQQCKqdLf26Ic2Jmdy7E
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzNzgwMzgzLCJpYXQiOjE3NDM2OTM5ODMsImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.i-YLNzmFKN0Me7hv0zXI4cu_Qv3G_ZkuaTKskUV_Oo8
 
 ### Cập nhật profile
 PUT http://localhost:3000/api/users/profile
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzNzc2MzE5LCJpYXQiOjE3NDM2ODk5MTksImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.8F-8TX9SsdUAecejilMb5ODKQQCKqdLf26Ic2Jmdy7E
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzNzgwMzgzLCJpYXQiOjE3NDM2OTM5ODMsImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.i-YLNzmFKN0Me7hv0zXI4cu_Qv3G_ZkuaTKskUV_Oo8
 Content-Type: application/json
 
 {
@@ -51,7 +51,7 @@ Content-Type: application/json
 
 ### Cập nhật status
 PUT http://localhost:3000/api/users/status
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzNzc2MzE5LCJpYXQiOjE3NDM2ODk5MTksImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.8F-8TX9SsdUAecejilMb5ODKQQCKqdLf26Ic2Jmdy7E
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzNzgwMzgzLCJpYXQiOjE3NDM2OTM5ODMsImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.i-YLNzmFKN0Me7hv0zXI4cu_Qv3G_ZkuaTKskUV_Oo8
 Content-Type: application/json
 
 {

@@ -7,12 +7,20 @@ class UserController {
     async register(req, res) {
         try {
             console.log('Processing registration for user:', req.body);
-            const { phone, name, status = 'online', role = 'user' } = req.body;
+            const { phone, name, password, status = 'online', role = 'user' } = req.body;
             
             if (!phone) {
                 return res.status(400).json({
                     success: false,
                     message: 'Số điện thoại là bắt buộc',
+                    data: null
+                });
+            }
+
+            if (!password) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Mật khẩu là bắt buộc',
                     data: null
                 });
             }
@@ -34,29 +42,28 @@ class UserController {
                 }
             }
 
-            // Create new user
+            // Hash password
+            const hashedPassword = await bcrypt.hash(password, 10);
+
+            // Create user data
             const userData = {
                 phone,
-                name: name || phone, // Use phone number as name if not provided
-                status,
+                name: name || phone,
+                password: hashedPassword,
+                status: 'online',
                 role,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()
             };
 
-            console.log('Creating new user:', JSON.stringify(userData));
+            // Create new user
             const user = await userService.createUser(userData);
 
-            console.log('User created successfully:', JSON.stringify(user));
+            console.log('User created successfully:', JSON.stringify({...user, password: '[HIDDEN]'}));
             return res.status(201).json({
                 success: true,
                 message: 'Đăng ký thành công',
-                data: {
-                    phone: user.phone,
-                    name: user.name,
-                    status: user.status,
-                    role: user.role
-                }
+                data: user
             });
         } catch (error) {
             console.error('Registration error:', error);
@@ -244,10 +251,22 @@ class UserController {
                 });
             }
 
+            // Kiểm tra xem request có phải từ auth-service không
+            const isAuthService = req.headers['x-service'] === 'auth-service';
+
+            // Nếu là auth-service, trả về cả password, ngược lại loại bỏ password
+            const responseData = isAuthService ? user : {
+                ...user,
+                password: undefined
+            };
+
+            // Log response data for debugging (hide password)
+            console.log('Response data:', JSON.stringify({...responseData, password: responseData.password ? '[HIDDEN]' : undefined}));
+
             return res.json({
                 success: true,
                 message: 'Lấy thông tin người dùng thành công',
-                data: user
+                data: responseData
             });
         } catch (error) {
             console.error('Get user error:', error);
@@ -302,15 +321,17 @@ class UserController {
                 });
             }
 
-            const lastSeen = status === 'offline' ? new Date().toISOString() : null;
             const updateData = {
                 status,
-                lastSeen
+                lastSeen: status === 'offline' ? new Date().toISOString() : null,
+                updatedAt: new Date().toISOString()
             };
 
             const updatedUser = await userService.updateUser(phone, updateData);
             
-            // TODO: Gửi thông báo qua WebSocket để cập nhật trạng thái cho các client khác
+            if (global.wss) {
+                global.wss.broadcastStatus(phone, status);
+            }
             
             return res.json({
                 success: true,
