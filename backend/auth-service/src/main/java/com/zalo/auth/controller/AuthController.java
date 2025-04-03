@@ -3,6 +3,8 @@ package com.zalo.auth.controller;
 import com.zalo.auth.dto.*;
 import com.zalo.auth.service.TwilioOTPService;
 import com.zalo.auth.service.ZaloAuthService;
+import com.zalo.auth.config.JwtConfig;
+import com.zalo.auth.security.JwtTokenProvider;
 
 import jakarta.validation.Valid;
 
@@ -22,6 +24,44 @@ public class AuthController {
 
     @Autowired
     private TwilioOTPService twilioOTPService;
+
+    @Autowired
+    private JwtConfig jwtConfig;
+
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
+
+    @GetMapping("/jwt-secret")
+    public Mono<ResponseEntity<JwtSecretResponse>> getJwtSecret() {
+        JwtSecretResponse response = new JwtSecretResponse();
+        response.setSecret(jwtConfig.jwtSecret());
+        return Mono.just(ResponseEntity.ok(response));
+    }
+
+    @GetMapping("/validate-token")
+    public Mono<ResponseEntity<ApiResponse>> validateToken(@RequestHeader("Authorization") String authHeader) {
+        try {
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse(false, "Invalid token format", null)));
+            }
+
+            String token = authHeader.substring(7);
+            if (jwtTokenProvider.validateToken(token)) {
+                Authentication auth = jwtTokenProvider.getAuthentication(token);
+                return Mono.just(ResponseEntity.ok(new ApiResponse(true, "Token is valid", new TokenValidationResponse(
+                    auth.getName(),
+                    auth.getAuthorities().stream().findFirst().map(a -> a.getAuthority()).orElse("user")
+                ))));
+            } else {
+                return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse(false, "Invalid token", null)));
+            }
+        } catch (Exception e) {
+            return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ApiResponse(false, "Token validation failed: " + e.getMessage(), null)));
+        }
+    }
 
     @PostMapping("/register/send-otp")
     public Mono<ResponseEntity<String>> sendRegistrationOtp(@Valid @RequestBody RegisterSendOtpRequest request) {

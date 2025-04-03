@@ -38,7 +38,8 @@ public class SecurityConfig {
                             "/api/auth/login",
                             "/api/auth/login/phone",
                             "/api/auth/refresh-token",
-                            "/api/auth/send-otp"
+                            "/api/auth/send-otp",
+                            "/api/auth/validate-token"
                         ).permitAll()
                         .pathMatchers(HttpMethod.OPTIONS).permitAll()
                         .anyExchange().authenticated()
