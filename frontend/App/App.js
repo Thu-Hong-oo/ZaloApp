@@ -6,7 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import COLORS from "./components/colors";
 import "@expo/metro-runtime";
 
-import Chat from "./screens/ChatScreen";
+import Chat from "./screens/WelcomeScreen";
 import Contacts from "./screens/ContactsScreen";
 import Explore from "./screens/ExploreScreen";
 import Journal from "./screens/JournalScreen";

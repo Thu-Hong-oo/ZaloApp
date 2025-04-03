@@ -31,7 +31,7 @@ export default function SignInScreen({navigation, route}){
             </TouchableOpacity>
         </View>
         <View style={{marginBottom:'10%', marginLeft:'5%', flexDirection:'row', justifyContent:'space-between', alignItems:'center'}}>
-            <Text style={{color:'grey', fontWeight:500}}>Câu hỏi thường gặp > </Text>
+            <Text style={{color:'grey', fontWeight:500}}>Câu hỏi thường gặp &gt; </Text>
             <TouchableOpacity style={{marginRight:'5%'}}>
             {checkedSignInButton &&<Image source={require('../assets/arrow.png')} style={{width:50, height:50}}/>}
             </TouchableOpacity>
