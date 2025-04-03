@@ -5,6 +5,8 @@ import com.zalo.auth.service.TwilioOTPService;
 import com.zalo.auth.service.ZaloAuthService;
 import com.zalo.auth.config.JwtConfig;
 import com.zalo.auth.security.JwtTokenProvider;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.beans.factory.annotation.Value;
 
 import jakarta.validation.Valid;
 
@@ -18,6 +20,12 @@ import reactor.core.publisher.Mono;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
+    @Value("${user.service.name}")
+    private String userServiceName;
+
+    @Autowired
+    private WebClient.Builder webClientBuilder;
 
     @Autowired
     private ZaloAuthService authService;
@@ -82,9 +90,11 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public Mono<ResponseEntity<AuthResponse>> login(@Valid @RequestBody AuthRequest authRequest) {
-        return authService.login(authRequest)
-                .map(response -> ResponseEntity.ok(response));
+    public Mono<ResponseEntity<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
+        return authService.login(request)
+                .map(ResponseEntity::ok)
+                .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(AuthResponse.error(e.getMessage()))));
     }
 
     @PostMapping("/login/phone")
@@ -100,14 +110,44 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public Mono<ResponseEntity<Void>> logout(Authentication authentication) {
-        return authService.logout(authentication.getName())
-                .then(Mono.just(ResponseEntity.ok().<Void>build()));
+    public Mono<ResponseEntity<ApiResponse>> logout(@RequestHeader("Authorization") String authHeader) {
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            String phone = jwtTokenProvider.getUsernameFromToken(token);
+            return authService.logout(phone)
+                    .then(Mono.just(ResponseEntity.ok(new ApiResponse(true, "Đăng xuất thành công", null))));
+        }
+        return Mono.just(ResponseEntity.ok(new ApiResponse(true, "Đăng xuất thành công", null)));
     }
 
     @PostMapping("/refresh-token")
-    public Mono<ResponseEntity<AuthResponse>> refreshToken(@Valid @RequestBody RefreshTokenRequest refreshTokenRequest) {
-        return authService.refreshToken(refreshTokenRequest)
-                .map(response -> ResponseEntity.ok(response));
+    public Mono<ResponseEntity<AuthResponse>> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+        return authService.refreshToken(request)
+                .map(ResponseEntity::ok)
+                .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(AuthResponse.error(e.getMessage()))));
+    }
+
+    @PutMapping("/users/status")
+    public Mono<ResponseEntity<ApiResponse>> updateStatus(
+            @RequestHeader("Authorization") String authHeader,
+            @Valid @RequestBody UpdateStatusRequest request) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ApiResponse(false, "Token không hợp lệ", null)));
+        }
+
+        String token = authHeader.substring(7);
+        String phone = jwtTokenProvider.getUsernameFromToken(token);
+        
+        return webClientBuilder.build()
+            .put()
+            .uri("http://" + userServiceName + "/api/users/" + phone + "/status")
+            .bodyValue(request)
+            .retrieve()
+            .toBodilessEntity()
+            .map(response -> ResponseEntity.ok(new ApiResponse(true, "Cập nhật trạng thái thành công", null)))
+            .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiResponse(false, "Lỗi khi cập nhật trạng thái: " + e.getMessage(), null))));
     }
 }

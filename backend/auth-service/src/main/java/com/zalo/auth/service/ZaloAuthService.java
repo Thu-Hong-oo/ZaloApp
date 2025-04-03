@@ -7,8 +7,8 @@ public interface ZaloAuthService {
     Mono<String> sendRegistrationOtp(RegisterSendOtpRequest request);
     Mono<String> verifyRegistrationOtp(RegisterVerifyOtpRequest request);
     Mono<AuthResponse> completeRegistration(RegisterRequest registerRequest);
-    Mono<AuthResponse> login(AuthRequest authRequest);
+    Mono<AuthResponse> login(LoginRequest request);
     Mono<AuthResponse> loginWithPhone(PhoneLoginRequest phoneLoginRequest);
     Mono<Void> logout(String phoneNumber);
-    Mono<AuthResponse> refreshToken(RefreshTokenRequest refreshTokenRequest);
+    Mono<AuthResponse> refreshToken(RefreshTokenRequest request);
 }

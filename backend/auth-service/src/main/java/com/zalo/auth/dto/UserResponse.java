@@ -5,12 +5,9 @@ import lombok.Data;
 
 @Data
 public class UserResponse {
-    private String id;
-    private String email;
-    private String phone;
-    private String name;
-    private String avatar;
-    private String password;
+    private boolean success;
+    private String message;
+    private UserData data;
 
     public static UserResponse fromString(String json) {
         try {

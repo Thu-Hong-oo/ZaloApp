@@ -29,9 +29,9 @@ public class CustomReactiveUserDetailsService implements ReactiveUserDetailsServ
                 .uri(userServiceUrl + "/api/users/" + phoneNumber)
                 .retrieve()
                 .bodyToMono(UserResponse.class)
-                .map(user -> new User(
-                        user.getPhone(),
-                        user.getPassword(),
+                .map(response -> new User(
+                        response.getData().getPhone(),
+                        response.getData().getPassword(),
                         Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
                 ))
                 .cast(UserDetails.class)

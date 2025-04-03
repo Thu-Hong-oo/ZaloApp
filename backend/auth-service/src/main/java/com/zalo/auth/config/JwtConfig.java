@@ -15,12 +15,12 @@ public class JwtConfig {
     @Value("${jwt.refresh-expiration:86400000}")
     private long refreshExpiration;
     
+    @Value("${jwt.secret:defaultSecretKey123!@#}")
+    private String secret;
+    
     @Bean
     public String jwtSecret() {
-        SecureRandom secureRandom = new SecureRandom();
-        byte[] secretBytes = new byte[64];
-        secureRandom.nextBytes(secretBytes);
-        return Base64.getEncoder().encodeToString(secretBytes);
+        return secret;
     }
     
     public long getExpiration() {

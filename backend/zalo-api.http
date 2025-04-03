@@ -1,0 +1,80 @@
+### Đăng ký - Gửi OTP
+POST http://localhost:8080/api/auth/register/send-otp
+Content-Type: application/json
+
+{
+    "phoneNumber": "0376963653"
+}
+
+### Đăng ký - Xác thực OTP
+POST http://localhost:8080/api/auth/register/verify-otp
+Content-Type: application/json
+
+{
+    "phoneNumber": "0376963653",
+    "otp": "648579"
+}
+
+### Đăng ký - Hoàn tất
+POST http://localhost:8080/api/auth/register/complete
+Content-Type: application/json
+
+{
+    "phoneNumber": "0376963653",
+    "password": "123456",
+    "fullName": "Test User"
+}
+
+
+
+### Đăng nhập
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+    "phone": "0376963653",
+    "password": "123456"
+}
+
+### Lấy thông tin profile
+GET http://localhost:3000/api/users/profile
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzNzc2MzE5LCJpYXQiOjE3NDM2ODk5MTksImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.8F-8TX9SsdUAecejilMb5ODKQQCKqdLf26Ic2Jmdy7E
+
+### Cập nhật profile
+PUT http://localhost:3000/api/users/profile
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzNzc2MzE5LCJpYXQiOjE3NDM2ODk5MTksImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.8F-8TX9SsdUAecejilMb5ODKQQCKqdLf26Ic2Jmdy7E
+Content-Type: application/json
+
+{
+    "name": "Updated Name"
+}
+
+### Cập nhật status
+PUT http://localhost:3000/api/users/status
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzNzc2MzE5LCJpYXQiOjE3NDM2ODk5MTksImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.8F-8TX9SsdUAecejilMb5ODKQQCKqdLf26Ic2Jmdy7E
+Content-Type: application/json
+
+{
+    "status": "online"
+}
+
+
+### Tìm kiếm người dùng
+GET http://localhost:3000/api/users/search?query=name
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzNzc0NzM1LCJpYXQiOjE3NDM2ODgzMzUsImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.4yw3FUqbSW97ngvKlE8t4U27sL_IHE19TEZWnoaDd6A
+
+### Validate token
+GET http://localhost:3000/api/auth/validate-token
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzNzc0NzM1LCJpYXQiOjE3NDM2ODgzMzUsImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.4yw3FUqbSW97ngvKlE8t4U27sL_IHE19TEZWnoaDd6A
+
+### Refresh token
+POST http://localhost:3000/api/auth/refresh-token
+Content-Type: application/json
+
+{
+    "refreshToken": "YOUR_REFRESH_TOKEN"
+}
+
+### Đăng xuất
+POST http://localhost:8080/api/auth/logout
+Authorization: Bearer YOUR_TOKEN_HERE 
