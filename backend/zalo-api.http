@@ -12,7 +12,7 @@ Content-Type: application/json
 
 {
     "phoneNumber": "0376963653",
-    "otp": "385726"
+    "otp": "280922"
 }
 
 ### Đăng ký - Hoàn tất
@@ -38,11 +38,11 @@ Content-Type: application/json
 
 ### Lấy thông tin profile
 GET http://localhost:3000/api/users/profile
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzNzgwMzgzLCJpYXQiOjE3NDM2OTM5ODMsImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.i-YLNzmFKN0Me7hv0zXI4cu_Qv3G_ZkuaTKskUV_Oo8
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzODM3NTE5LCJpYXQiOjE3NDM3NTExMTksImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.vpuMq1-Wab-7KY15UpCTwG7-ut57SmHQBLaU2A_XSlE
 
 ### Cập nhật profile
 PUT http://localhost:3000/api/users/profile
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzNzgwMzgzLCJpYXQiOjE3NDM2OTM5ODMsImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.i-YLNzmFKN0Me7hv0zXI4cu_Qv3G_ZkuaTKskUV_Oo8
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzODM3NTE5LCJpYXQiOjE3NDM3NTExMTksImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.vpuMq1-Wab-7KY15UpCTwG7-ut57SmHQBLaU2A_XSlE
 Content-Type: application/json
 
 {
@@ -51,7 +51,7 @@ Content-Type: application/json
 
 ### Cập nhật status
 PUT http://localhost:3000/api/users/status
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzNzgwMzgzLCJpYXQiOjE3NDM2OTM5ODMsImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.i-YLNzmFKN0Me7hv0zXI4cu_Qv3G_ZkuaTKskUV_Oo8
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzODM3NTE5LCJpYXQiOjE3NDM3NTExMTksImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.vpuMq1-Wab-7KY15UpCTwG7-ut57SmHQBLaU2A_XSlE
 Content-Type: application/json
 
 {
@@ -59,13 +59,15 @@ Content-Type: application/json
 }
 
 
+
+### Validate token
+GET http://localhost:8080/api/auth/validate-token
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzODM3NTE5LCJpYXQiOjE3NDM3NTExMTksImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.vpuMq1-Wab-7KY15UpCTwG7-ut57SmHQBLaU2A_XSlE
+
 ### Tìm kiếm người dùng
 GET http://localhost:3000/api/users/search?query=name
 Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzNzc0NzM1LCJpYXQiOjE3NDM2ODgzMzUsImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.4yw3FUqbSW97ngvKlE8t4U27sL_IHE19TEZWnoaDd6A
 
-### Validate token
-GET http://localhost:8080/api/auth/validate-token
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzNzc0NzM1LCJpYXQiOjE3NDM2ODgzMzUsImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.4yw3FUqbSW97ngvKlE8t4U27sL_IHE19TEZWnoaDd6A
 
 ### Refresh token
 POST http://localhost:8080/api/auth/refresh-token
@@ -97,3 +99,6 @@ Content-Type: application/json
 {
     "phoneNumber": "0376963653"
 } 
+
+### 8. Lấy thông tin người dùng theo số điện thoại
+GET http://localhost:8080/api/users/0376963653

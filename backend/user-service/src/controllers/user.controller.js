@@ -2,7 +2,7 @@ const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcryptjs');
 const { dynamoDB, s3 } = require('../config/aws');
 const userService = require('../services/user.service');
-
+require('dotenv').config();
 class UserController {
     async register(req, res) {
         try {
@@ -172,7 +172,11 @@ class UserController {
             const file = req.file;
             const fileExtension = file.originalname.split('.').pop();
             const fileName = `${phone}-${Date.now()}.${fileExtension}`;
-
+// Log để debug
+console.log('Environment variables:', {
+    bucket: process.env.AWS_S3_BUCKET,
+    region: process.env.AWS_REGION
+});
             const params = {
                 Bucket: process.env.AWS_S3_BUCKET,
                 Key: `avatars/${fileName}`,
@@ -350,4 +354,4 @@ class UserController {
     }
 }
 
-module.exports = new UserController(); 
+module.exports = UserController; 
