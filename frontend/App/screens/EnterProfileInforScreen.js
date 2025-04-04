@@ -7,24 +7,70 @@ import {
   SafeAreaView,
   Modal,
   ScrollView,
-  TextInput,
+  FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 const PersonalInfoScreen = () => {
-  const [birthDate, setBirthDate] = useState('29/7/1990');
+  const [birthDate, setBirthDate] = useState('1/1/1990');
   const [gender, setGender] = useState('Nam');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showGenderPicker, setShowGenderPicker] = useState(false);
+  
+  // State for date picker
+  const [selectedDay, setSelectedDay] = useState(1);
+  const [selectedMonth, setSelectedMonth] = useState(1);
+  const [selectedYear, setSelectedYear] = useState(1990);
+  
+  // Generate arrays for days, months, and years
+  const days = Array.from({ length: 31 }, (_, i) => i + 1);
+  const months = Array.from({ length: 12 }, (_, i) => i + 1);
+  const years = Array.from({ length: 100 }, (_, i) => 2023 - i);
 
-  const handleSelectDate = (day, month, year) => {
-    setBirthDate(`${day}/${month}/${year}`);
+  const handleSelectDate = () => {
+    setBirthDate(`${selectedDay}/${selectedMonth}/${selectedYear}`);
     setShowDatePicker(false);
   };
 
   const handleSelectGender = (selectedGender) => {
     setGender(selectedGender);
     setShowGenderPicker(false);
+  };
+
+  const renderDateColumn = (data, selectedValue, setSelectedValue) => {
+    return (
+      <View style={styles.dateColumnContainer}>
+        <FlatList
+          data={data}
+          keyExtractor={(item) => item.toString()}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.dateOptionContainer}
+              onPress={() => setSelectedValue(item)}
+            >
+              <Text
+                style={[
+                  styles.dateOption,
+                  item === selectedValue && styles.selectedDate,
+                ]}
+              >
+                {item}
+              </Text>
+            </TouchableOpacity>
+          )}
+          showsVerticalScrollIndicator={false}
+          initialScrollIndex={data.indexOf(selectedValue)}
+          getItemLayout={(data, index) => ({
+            length: 50,
+            offset: 50 * index,
+            index,
+          })}
+          snapToInterval={50}
+          decelerationRate="fast"
+          contentContainerStyle={styles.dateColumnContent}
+        />
+      </View>
+    );
   };
 
   return (
@@ -81,29 +127,15 @@ const PersonalInfoScreen = () => {
             </View>
             
             <View style={styles.datePickerContainer}>
-              <View style={styles.dateColumn}>
-                <Text style={styles.dateOption}>28</Text>
-                <Text style={[styles.dateOption, styles.selectedDate]}>29</Text>
-                <Text style={styles.dateOption}>30</Text>
-              </View>
-              
-              <View style={styles.dateColumn}>
-                <Text style={styles.dateOption}>6</Text>
-                <Text style={[styles.dateOption, styles.selectedDate]}>7</Text>
-                <Text style={styles.dateOption}>8</Text>
-              </View>
-              
-              <View style={styles.dateColumn}>
-                <Text style={styles.dateOption}>1989</Text>
-                <Text style={[styles.dateOption, styles.selectedDate]}>1990</Text>
-                <Text style={styles.dateOption}>1991</Text>
-              </View>
+              {renderDateColumn(days, selectedDay, setSelectedDay)}
+              {renderDateColumn(months, selectedMonth, setSelectedMonth)}
+              {renderDateColumn(years, selectedYear, setSelectedYear)}
             </View>
             
             <View style={styles.modalFooter}>
               <TouchableOpacity 
                 style={styles.selectButton}
-                onPress={() => handleSelectDate(29, 7, 1990)}
+                onPress={handleSelectDate}
               >
                 <Text style={styles.selectButtonText}>Chọn</Text>
               </TouchableOpacity>
@@ -237,14 +269,23 @@ const styles = StyleSheet.create({
   datePickerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+    height: 150,
     paddingVertical: 20,
   },
-  dateColumn: {
+  dateColumnContainer: {
+    flex: 1,
+    height: 150,
+  },
+  dateColumnContent: {
+    paddingVertical: 50,
+  },
+  dateOptionContainer: {
+    height: 50,
+    justifyContent: 'center',
     alignItems: 'center',
   },
   dateOption: {
     fontSize: 18,
-    paddingVertical: 10,
     color: '#999999',
   },
   selectedDate: {
