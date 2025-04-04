@@ -12,7 +12,7 @@ Content-Type: application/json
 
 {
     "phoneNumber": "0376963653",
-    "otp": "648579"
+    "otp": "385726"
 }
 
 ### Đăng ký - Hoàn tất
@@ -64,11 +64,11 @@ GET http://localhost:3000/api/users/search?query=name
 Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzNzc0NzM1LCJpYXQiOjE3NDM2ODgzMzUsImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.4yw3FUqbSW97ngvKlE8t4U27sL_IHE19TEZWnoaDd6A
 
 ### Validate token
-GET http://localhost:3000/api/auth/validate-token
+GET http://localhost:8080/api/auth/validate-token
 Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzNzc0NzM1LCJpYXQiOjE3NDM2ODgzMzUsImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.4yw3FUqbSW97ngvKlE8t4U27sL_IHE19TEZWnoaDd6A
 
 ### Refresh token
-POST http://localhost:3000/api/auth/refresh-token
+POST http://localhost:8080/api/auth/refresh-token
 Content-Type: application/json
 
 {
@@ -77,4 +77,23 @@ Content-Type: application/json
 
 ### Đăng xuất
 POST http://localhost:8080/api/auth/logout
-Authorization: Bearer YOUR_TOKEN_HERE 
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzNzgwMzgzLCJpYXQiOjE3NDM2OTM5ODMsImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.i-YLNzmFKN0Me7hv0zXI4cu_Qv3G_ZkuaTKskUV_Oo8
+
+### Lấy JWT Secret
+GET http://localhost:8080/api/auth/jwt-secret
+
+### Đăng nhập bằng số điện thoại
+POST http://localhost:8080/api/auth/login/phone
+Content-Type: application/json
+
+{
+    "phoneNumber": "0376963653"
+}
+
+### Gửi OTP reset password
+POST http://localhost:8080/api/auth/send-otp
+Content-Type: application/json
+
+{
+    "phoneNumber": "0376963653"
+} 

@@ -1,20 +1,22 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8080/api/auth'; // URL của Java Spring backend
+const API_URL = 'http://192.168.1.163:8080/api/auth';
 
 const authService = {
   // Gửi OTP đăng ký
   sendRegistrationOTP: async (phoneNumber) => {
     try {
-      console.log('Sending OTP request to:', `${API_URL}/register/send-otp`);
-      console.log('Phone number:', phoneNumber);
+      console.log('Sending registration OTP request:', {
+        url: `${API_URL}/register/send-otp`,
+        data: { phoneNumber }
+      });
       const response = await axios.post(`${API_URL}/register/send-otp`, {
         phoneNumber: phoneNumber
       });
-      console.log('Response:', response.data);
+      console.log('Registration OTP response:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Error sending OTP:', error);
+      console.error('Error in sendRegistrationOTP:', error.response || error);
       throw error.response?.data || { message: 'Có lỗi xảy ra khi gửi OTP đăng ký' };
     }
   },
@@ -22,13 +24,19 @@ const authService = {
   // Xác thực OTP đăng ký
   verifyRegistrationOTP: async (phoneNumber, otp) => {
     try {
+      console.log('Verifying registration OTP request:', {
+        url: `${API_URL}/register/verify-otp`,
+        data: { phoneNumber, otp }
+      });
       const response = await axios.post(`${API_URL}/register/verify-otp`, {
         phoneNumber: phoneNumber,
         otp: otp
       });
+      console.log('Verify OTP response:', response.data);
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Có lỗi xảy ra khi xác thực OTP đăng ký' };
+      console.error('Error in verifyRegistrationOTP:', error.response || error);
+      throw error.response?.data || { message: 'Có lỗi xảy ra khi xác thực OTP' };
     }
   },
 
@@ -42,7 +50,7 @@ const authService = {
     }
   },
 
-  // Đăng nhập bằng số điện thoại và mật khẩu
+  // Đăng nhập
   login: async (phoneNumber, password) => {
     try {
       const response = await axios.post(`${API_URL}/login`, {
