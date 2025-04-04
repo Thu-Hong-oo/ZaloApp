@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -7,14 +7,65 @@ import {
   StyleSheet,
   SafeAreaView,
   StatusBar,
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {useNavigation} from '@react-navigation/native';
+import { AuthContext } from '../App';
+import authService from '../services/auth-service';
+
 const LoginScreen = () => {
-  const [phoneNumber, setPhoneNumber] = useState('012345678');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [otp, setOtp] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showOTPInput, setShowOTPInput] = useState(false);
+  const { setIsLoggedIn, setToken, setRefreshToken, setUser } = useContext(AuthContext);
   const navigation = useNavigation();
+
+  const handleSendOTP = async () => {
+    if (!phoneNumber) {
+      Alert.alert('Lỗi', 'Vui lòng nhập số điện thoại');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      console.log('Sending OTP for phone:', phoneNumber);
+      const response = await authService.sendRegistrationOTP(phoneNumber);
+      console.log('OTP sent successfully:', response);
+      setShowOTPInput(true);
+      Alert.alert('Thành công', 'OTP đã được gửi đến số điện thoại của bạn');
+    } catch (error) {
+      console.error('Error in handleSendOTP:', error);
+      Alert.alert('Lỗi', error.message || 'Có lỗi xảy ra khi gửi OTP');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    if (!otp) {
+      Alert.alert('Lỗi', 'Vui lòng nhập OTP');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await authService.loginWithPhone(phoneNumber, otp);
+      
+      // Lưu token và refresh token
+      setToken(response.token);
+      setRefreshToken(response.refreshToken);
+      setUser(response.user);
+      setIsLoggedIn(true);
+    } catch (error) {
+      Alert.alert('Lỗi', error.message || 'Có lỗi xảy ra khi xác thực OTP');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
      {/* <StatusBar barStyle="light-content" backgroundColor="#0068FF" /> */}
@@ -42,9 +93,11 @@ const LoginScreen = () => {
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
+            placeholder="Số điện thoại"
             value={phoneNumber}
             onChangeText={setPhoneNumber}
             keyboardType="phone-pad"
+            editable={!showOTPInput}
           />
           {phoneNumber.length > 0 && (
             <TouchableOpacity 
@@ -57,26 +110,34 @@ const LoginScreen = () => {
        
         </View>
 
-        {/* Password input */}
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            value={password}
-            onChangeText={setPassword}
-            placeholder="Mật khẩu"
-            placeholderTextColor="#9E9E9E"
-            secureTextEntry={!showPassword}
-          />
+        {showOTPInput && (
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Mã OTP"
+              value={otp}
+              onChangeText={setOtp}
+              keyboardType="number-pad"
+            />
+          </View>
+        )}
+
+        {/* Submit button */}
+        <View style={styles.submitButtonContainer}>
           <TouchableOpacity 
-            style={styles.showPasswordButton}
-            onPress={() => setShowPassword(!showPassword)}
+            style={styles.submitButton} 
+            onPress={showOTPInput ? handleVerifyOTP : handleSendOTP}
+            disabled={isLoading}
           >
-            <Text style={styles.showPasswordText}>HIỆN</Text>
+            {isLoading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text style={styles.submitButtonText}>
+                {showOTPInput ? 'Xác thực OTP' : 'Gửi OTP'}
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
-
-        {/* Underline for password field */}
-        <View style={styles.passwordUnderline} />
 
         {/* Forgot password link */}
         <TouchableOpacity style={styles.forgotPasswordContainer}>
@@ -91,15 +152,12 @@ const LoginScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Submit button */}
-        <View style={styles.submitButtonContainer}>
-          <TouchableOpacity 
-            style={styles.submitButton} 
-            activeOpacity={0.8}
-          >
-            <Text style={styles.submitButtonText}>→</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={styles.linkButton}
+          onPress={() => navigation.navigate('SignUp')}
+        >
+          <Text style={styles.linkText}>Chưa có tài khoản? Đăng ký</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -164,17 +222,37 @@ const styles = StyleSheet.create({
     color: '#9E9E9E',
     fontSize: 18,
   },
-  showPasswordButton: {
-    padding: 5,
+  submitButtonContainer: {
+    position: 'absolute',
+    bottom: 80,
+    right: 20,
+    // Thêm hiệu ứng đổ bóng cho container
+    shadowColor: '#1877f2',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  showPasswordText: {
-    color: '#9E9E9E',
+  submitButton: {
+    width: 150,
+    height: 65,
+    borderRadius: 32.5,
+    backgroundColor: '#1877f2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#4293f5',
+    elevation: 8, 
+  },
+  
+  submitButtonText: {
+    color: '#FFFFFF',
+    fontSize: 32,  // Kích thước lớn hơn để dễ căn chỉnh
     fontWeight: 'bold',
-  },
-  passwordUnderline: {
-    height: 2,
-    backgroundColor: '#00BFA5',
-    marginHorizontal: 15,
+    textAlign: 'center', 
+    textAlignVertical: 'center', // Dành cho Android
+    includeFontPadding: false,  // Loại bỏ padding thừa trên Android
+    lineHeight: 36, // Phải gần bằng fontSize hoặc lớn hơn một chút
   },
   forgotPasswordContainer: {
     marginTop: 15,
@@ -204,40 +282,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginLeft: 5,
   },
-  submitButtonContainer: {
-    position: 'absolute',
-    bottom: 80,
-    right: 20,
-    // Thêm hiệu ứng đổ bóng cho container
-    shadowColor: '#1877f2',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  submitButton: {
-    width: 65,
-    height: 65,
-    borderRadius: 32.5,
-    backgroundColor: '#1877f2',
-    justifyContent: 'center',
+  linkButton: {
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#4293f5',
-    elevation: 8, 
+    marginTop: 15,
   },
-  
-  submitButtonText: {
-    color: '#FFFFFF',
-    fontSize: 32,  // Kích thước lớn hơn để dễ căn chỉnh
-    fontWeight: 'bold',
-    textAlign: 'center', 
-    textAlignVertical: 'center', // Dành cho Android
-    includeFontPadding: false,  // Loại bỏ padding thừa trên Android
-    lineHeight: 36, // Phải gần bằng fontSize hoặc lớn hơn một chút
+  linkText: {
+    color: '#0068FF',
+    fontSize: 16,
   },
-  
-  
 });
 
 export default LoginScreen;

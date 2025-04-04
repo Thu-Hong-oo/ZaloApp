@@ -1,44 +1,172 @@
-import React,{useRef,useState} from 'react';
-import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
-import OTPTextInput from 'react-native-otp-textinput';
-export default function OTPScreen({navigation, route}){
-    const {phoneNumber} = route.params;
-    const otpInput= useRef(null);
-    const [otp, setOtp] = useState('');
-    return(
-        <View style={{flex:1, backgroundColor:'#ffff'}}>
-            <Text style={{textAlign:'center', fontWeight:'bold', fontSize:25, marginTop:20}}>Nhập mã xác thực</Text>
-            <Text style={{ textAlign:'center',alignItems:'center',  justifyContent:'center', padding:15, fontSize:15}}>Đang gửi tin nhắn đến số  <Text style={{fontWeight:'bold', fontSize:16}}>{phoneNumber}.</Text> <Text>Vui lòng xem tin nhắn và nhập mã xác thực gồm 6 chữ số.</Text></Text>
-            <OTPTextInput
-                ref={otpInput}
-                inputCount={6}
-                tintColor='#0a64f4'
-                containerStyle={{marginTop:10, padding:0}}
-                textInputStyle={{borderWidth:2, borderRadius:10}}
-                handleTextChange={(otp)=> setOtp(otp)}
-            />
-            <TouchableOpacity
-        style={[
-          styles.continueButton,
-          { backgroundColor: otp.length === 6 ? '#0a64f4' : '#b0c4de' },
-         
-        ]}
-        onPress={()=>{navigation.navigate('')}}
-        disabled={otp.length !== 6} 
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  SafeAreaView,
+  Alert
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import authService from '../services/auth-service';
+
+const OTPScreen = ({ route, navigation }) => {
+  // Kiểm tra và lấy phoneNumber từ params một cách an toàn
+  const phoneNumber = route?.params?.phoneNumber || '';
+  const [otp, setOtp] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Nếu không có phoneNumber, quay lại màn hình trước
+  useEffect(() => {
+    if (!phoneNumber) {
+      Alert.alert('Lỗi', 'Không tìm thấy số điện thoại');
+      navigation.goBack();
+    }
+  }, [phoneNumber]);
+
+  const handleVerifyOTP = async () => {
+    if (!otp) {
+      Alert.alert('Lỗi', 'Vui lòng nhập mã OTP');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await authService.verifyRegistrationOTP(phoneNumber, otp);
+      console.log('OTP verification response:', response);
+      
+      // Nếu xác thực thành công, chuyển đến màn hình tiếp theo
+      navigation.navigate('CompleteProfile', { phoneNumber });
+    } catch (error) {
+      console.error('Error verifying OTP:', error);
+      Alert.alert('Lỗi', error.message || 'Có lỗi xảy ra khi xác thực OTP');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    try {
+      setIsLoading(true);
+      await authService.sendRegistrationOTP(phoneNumber);
+      Alert.alert('Thành công', 'Mã OTP mới đã được gửi');
+    } catch (error) {
+      Alert.alert('Lỗi', error.message || 'Có lỗi xảy ra khi gửi lại OTP');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <TouchableOpacity 
+        style={styles.backButton}
+        onPress={() => navigation.goBack()}
       >
-        <Text style={{color: otp.length === 6 ? '#fff' : 'grey', fontWeight:500, fontSize:18 }}>Tiếp tục</Text>
+        <Ionicons name="arrow-back" size={24} color="#000" />
       </TouchableOpacity>
-      <Text style={{marginTop:20,fontWeight:500, fontSize:16, textAlign:'center' }}>Bạn không nhận được mã?</Text>
-        </View>
-    )
-}
+
+      <View style={styles.content}>
+        <Text style={styles.title}>Nhập mã xác thực</Text>
+        <Text style={styles.subtitle}>
+          Mã xác thực đã được gửi đến số {phoneNumber}
+        </Text>
+
+        {/* OTP Input */}
+        <TextInput
+          style={styles.otpInput}
+          value={otp}
+          onChangeText={setOtp}
+          placeholder="Nhập mã OTP"
+          keyboardType="number-pad"
+          maxLength={6}
+          autoFocus={true}
+        />
+
+        {/* Verify Button */}
+        <TouchableOpacity
+          style={[styles.verifyButton, otp.length === 6 && styles.verifyButtonActive]}
+          onPress={handleVerifyOTP}
+          disabled={otp.length !== 6 || isLoading}
+        >
+          <Text style={styles.verifyButtonText}>
+            {isLoading ? 'Đang xác thực...' : 'Xác thực'}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Resend OTP */}
+        <TouchableOpacity
+          style={styles.resendButton}
+          onPress={handleResendOTP}
+          disabled={isLoading}
+        >
+          <Text style={styles.resendButtonText}>Gửi lại mã</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+};
+
 const styles = StyleSheet.create({
-    continueButton: {
-    marginTop: 30,
-    paddingVertical: 15,
-    borderRadius: 50,
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  backButton: {
+    padding: 16,
+  },
+  content: {
+    paddingHorizontal: 20,
     alignItems: 'center',
-    width: '90%',
-    alignSelf: 'center',
-  }
-})
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 30,
+    textAlign: 'center',
+  },
+  otpInput: {
+    width: '80%',
+    height: 50,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    fontSize: 20,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  verifyButton: {
+    width: '80%',
+    height: 50,
+    backgroundColor: '#E8E8E8',
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  verifyButtonActive: {
+    backgroundColor: '#0068FF',
+  },
+  verifyButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  resendButton: {
+    padding: 10,
+  },
+  resendButtonText: {
+    color: '#0068FF',
+    fontSize: 16,
+  },
+});
+
+export default OTPScreen;

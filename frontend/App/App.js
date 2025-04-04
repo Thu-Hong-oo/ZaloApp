@@ -1,4 +1,4 @@
-import React from "react";
+import React, { createContext, useState } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -15,6 +15,10 @@ import Contacts from "./screens/ContactsScreen";
 import Explore from "./screens/ExploreScreen";
 import Journal from "./screens/JournalScreen";
 import Personal from "./screens/PersonalScreen";
+import OTPScreen from "./screens/OTPScreen";
+
+// Create Auth Context
+export const AuthContext = createContext(null);
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -26,6 +30,7 @@ function AuthStack() {
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="SignUp" component={SignUpScreen} />
+      <Stack.Screen name="VerificationCode" component={OTPScreen} />
     </Stack.Navigator>
   );
 }
@@ -132,15 +137,31 @@ function BottomTabs() {
 }
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = React.useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
+  const [refreshToken, setRefreshToken] = useState(null);
+
+  const authContext = {
+    isLoggedIn,
+    setIsLoggedIn,
+    user,
+    setUser,
+    token,
+    setToken,
+    refreshToken,
+    setRefreshToken
+  };
 
   return (
-    <NavigationContainer>
-      {!isLoggedIn ? (
-        <AuthStack />
-      ) : (
-        <BottomTabs />
-      )}
-    </NavigationContainer>
+    <AuthContext.Provider value={authContext}>
+      <NavigationContainer>
+        {!isLoggedIn ? (
+          <AuthStack />
+        ) : (
+          <BottomTabs />
+        )}
+      </NavigationContainer>
+    </AuthContext.Provider>
   );
 }
