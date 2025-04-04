@@ -59,13 +59,15 @@ Content-Type: application/json
 }
 
 
+
+### Validate token
+GET http://localhost:8080/api/auth/validate-token
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzODM3NTE5LCJpYXQiOjE3NDM3NTExMTksImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.vpuMq1-Wab-7KY15UpCTwG7-ut57SmHQBLaU2A_XSlE
+
 ### Tìm kiếm người dùng
 GET http://localhost:3000/api/users/search?query=name
 Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzNzc0NzM1LCJpYXQiOjE3NDM2ODgzMzUsImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.4yw3FUqbSW97ngvKlE8t4U27sL_IHE19TEZWnoaDd6A
 
-### Validate token
-GET http://localhost:8080/api/auth/validate-token
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzNzc0NzM1LCJpYXQiOjE3NDM2ODgzMzUsImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.4yw3FUqbSW97ngvKlE8t4U27sL_IHE19TEZWnoaDd6A
 
 ### Refresh token
 POST http://localhost:8080/api/auth/refresh-token
