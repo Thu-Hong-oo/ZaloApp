@@ -110,27 +110,26 @@ public class ZaloAuthServiceImpl implements ZaloAuthService {
                             .thenReturn("OTP đã được gửi để xác thực số điện thoại");
                 });
     }
-
     @Override
-    public Mono<String> verifyRegistrationOtp(RegisterVerifyOtpRequest request) {
+    public Mono<ApiResponse> verifyRegistrationOtp(RegisterVerifyOtpRequest request) {
         log.info("Đang xác thực OTP cho số điện thoại: {}", request.getPhoneNumber());
         log.info("OTP: {}", request.getOtp());
-        
+    
         return twilioOTPService.validateOTP(request.getOtp(), request.getPhoneNumber())
                 .doOnNext(result -> log.info("Kết quả xác thực OTP: {}", result))
-                .doOnError(error -> log.error("Lỗi xác thực OTP: {}", error.getMessage()))
                 .flatMap(validOtp -> {
                     if (!"Mã OTP hợp lệ, vui lòng tiếp tục".equals(validOtp)) {
                         log.error("Phản hồi OTP không hợp lệ: {}", validOtp);
                         return Mono.error(new InvalidOtpException("OTP không hợp lệ."));
                     }
-                    return Mono.just("OTP hợp lệ, vui lòng tiếp tục đăng ký");
+                    return Mono.just(new ApiResponse(true, "OTP hợp lệ, vui lòng tiếp tục đăng ký", null));
                 })
                 .onErrorResume(e -> {
                     log.error("Lỗi trong xác thực OTP: {}", e.getMessage());
-                    return Mono.error(e);
+                    return Mono.just(new ApiResponse(false, "Lỗi trong xác thực OTP", null));
                 });
     }
+    
 
     @Override
     public Mono<AuthResponse> completeRegistration(RegisterRequest registerRequest) {

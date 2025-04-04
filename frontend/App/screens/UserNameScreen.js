@@ -6,69 +6,149 @@ import {
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
-  StatusBar,
+  Alert
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import authService from '../services/auth-service'; // Đảm bảo nhập đúng authService
 
-const EnterNameScreen = () => {
-  const [zaloName, setZaloName] = useState('');
+const UserNameScreen = ({ route, navigation }) => {
+  const { phoneNumber } = route.params || {}; 
+  console.log('phoneNumber: ', phoneNumber);
+  // Số điện thoại có sẵn (có thể là +84...)
+  const [fullName, setFullName] = useState(''); // Trường nhập Họ tên
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const formatPhoneNumber = (phoneNumber) => {
+    // Nếu số điện thoại bắt đầu bằng +84, thay +84 bằng 0
+    if (phoneNumber.startsWith('+84')) {
+      return '0' + phoneNumber.slice(3); // Thay +84 bằng 0
+    }
+  
+    // Nếu số điện thoại không bắt đầu bằng 0, thêm 0 vào đầu
+    if (!phoneNumber.startsWith('0')) {
+      return '0' + phoneNumber; // Thêm số 0 vào đầu
+    }
+  
+    return phoneNumber; // Nếu không thay đổi gì thì trả về số điện thoại gốc
+  };
+  
+
+  const validatePhoneNumber = (phoneNumber) => {
+    const phonePattern = /^0[0-9]{9,10}$/; // Kiểm tra số điện thoại bắt đầu bằng 0 và có 10-11 chữ số
+    return phonePattern.test(phoneNumber);
+  };
+
+  const handleContinue = async () => {
+    // Kiểm tra Họ tên và Số điện thoại
+    if (!fullName.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập họ tên');
+      return;
+    }
+  
+    if (!password.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập mật khẩu');
+      return;
+    }
+  
+    if (password !== confirmPassword) {
+      Alert.alert('Lỗi', 'Mật khẩu và xác nhận mật khẩu không khớp');
+      return;
+    }
+  
+    if (!phoneNumber) {
+      Alert.alert('Lỗi', 'Không tìm thấy số điện thoại');
+      return;
+    }
+  
+    const formattedPhoneNumber = formatPhoneNumber(phoneNumber);
+  
+    if (!validatePhoneNumber(formattedPhoneNumber)) {
+      Alert.alert('Lỗi', 'Số điện thoại phải bắt đầu bằng số 0 và có 10-11 chữ số');
+      return;
+    }
+  
+    try {
+      setIsLoading(true);
+      console.log('Gửi yêu cầu đăng ký với số điện thoại:', formattedPhoneNumber);
+      const response = await authService.completeRegistration({
+        phoneNumber: formattedPhoneNumber,
+        fullName,
+        password, // Gửi mật khẩu cùng với thông tin khác
+      });
+  
+      console.log('Đăng ký thành công, response:', response);
+      // Nếu đăng ký thành công, chuyển đến màn hình chính
+      if (response.success) {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'EnterProfileInfor' }],
+        });
+      } else {
+        Alert.alert('Lỗi', response.message || 'Có lỗi xảy ra khi đăng ký');
+      }
+    } catch (error) {
+      console.error('Error completing registration:', error);
+      Alert.alert('Lỗi', error.message || 'Có lỗi xảy ra khi hoàn tất đăng ký');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-      
+      <TouchableOpacity 
+        style={styles.backButton}
+        onPress={() => navigation.goBack()}
+      >
+        <Ionicons name="arrow-back" size={24} color="#000" />
+      </TouchableOpacity>
+
       <View style={styles.content}>
-        {/* Header */}
-        <Text style={styles.title}>Nhập tên Zalo</Text>
+        <Text style={styles.title}>Tên người dùng</Text>
         <Text style={styles.subtitle}>
-          Hãy dùng tên thật để mọi người dễ nhận ra bạn
+          Nhập tên bạn muốn hiển thị trên Zalo
         </Text>
+
+        <TextInput
+          style={styles.input}
+          value={fullName}
+          onChangeText={setFullName}
+          placeholder="Nhập tên của bạn"
+          autoFocus={true}
+          maxLength={30}  
+        />
         
-        {/* Input field */}
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            value={zaloName}
-            onChangeText={setZaloName}
-           
-          />
-          {zaloName.length > 0 && (
-            <TouchableOpacity 
-              style={styles.clearButton}
-              onPress={() => setZaloName('')}
-            >
-              <View style={styles.clearButtonCircle}>
-                <Text style={styles.clearButtonText}>✕</Text>
-              </View>
-            </TouchableOpacity>
-          )}
-        </View>
-        
-        {/* Requirements */}
-        <View style={styles.requirementsContainer}>
-          <View style={styles.requirementItem}>
-            <Text style={styles.bulletPoint}>•</Text>
-            <Text style={styles.requirementText}>Dài từ 2 đến 40 ký tự</Text>
-          </View>
-          <View style={styles.requirementItem}>
-            <Text style={styles.bulletPoint}>•</Text>
-            <Text style={styles.requirementText}>Không chứa ký tự đặc biệt</Text>
-          </View>
-          <View style={styles.requirementItem}>
-            <Text style={styles.bulletPoint}>•</Text>
-            <Text style={styles.requirementText}>
-              Cần tuân thủ <Text style={styles.blueText}>quy định đặt tên Zalo</Text>
-            </Text>
-          </View>
-        </View>
-      </View>
-      
-      {/* Continue button */}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity 
-          style={styles.continueButton}
-          activeOpacity={0.8}
+        {/* Thêm trường nhập mật khẩu */}
+        <TextInput
+          style={styles.input}
+          value={password}
+          onChangeText={setPassword}
+          placeholder="Nhập mật khẩu"
+          secureTextEntry={true}  // Đảm bảo mật khẩu được ẩn
+          maxLength={20}  // Bạn có thể thay đổi giới hạn chiều dài mật khẩu nếu cần
+        />
+
+        {/* Thêm trường xác nhận mật khẩu */}
+        <TextInput
+          style={styles.input}
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          placeholder="Xác nhận mật khẩu"
+          secureTextEntry={true}  // Đảm bảo mật khẩu được ẩn
+          maxLength={20}  // Giới hạn chiều dài mật khẩu
+        />
+
+        <TouchableOpacity
+          style={[styles.continueButton, fullName.trim() && password.trim() && confirmPassword.trim() ? styles.continueButtonActive : null]}
+          onPress={handleContinue}
+          disabled={!fullName.trim() || !password.trim() || !confirmPassword.trim() || isLoading}
         >
-          <Text style={styles.continueButtonText}>Tiếp tục</Text>
+          <Text style={styles.continueButtonText}>
+            {isLoading ? 'Đang xử lý...' : 'Tiếp tục'}
+          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -78,90 +158,46 @@ const EnterNameScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#fff',
+  },
+  backButton: {
+    padding: 16,
   },
   content: {
-    flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 20,
   },
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#000000',
-    marginBottom: 8,
+    marginBottom: 10,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#757575',
-    marginBottom: 20,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 4,
-    paddingHorizontal: 10,
-    marginBottom: 20,
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 30,
   },
   input: {
-    flex: 1,
-    height: 45,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 15,
     fontSize: 16,
-  },
-  clearButton: {
-    padding: 5,
-  },
-  clearButtonCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#E0E0E0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  clearButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  requirementsContainer: {
-    marginTop: 10,
-  },
-  requirementItem: {
-    flexDirection: 'row',
-    marginBottom: 8,
-    alignItems: 'flex-start',
-  },
-  bulletPoint: {
-    color: '#757575',
-    marginRight: 5,
-    fontSize: 14,
-  },
-  requirementText: {
-    color: '#757575',
-    fontSize: 14,
-  },
-  blueText: {
-    color: '#0068FF',
-    fontWeight: 'bold',
-  },
-  buttonContainer: {
-    padding: 20,
+    marginBottom: 20,  // Giảm khoảng cách giữa các trường nhập
   },
   continueButton: {
-    backgroundColor: '#0068FF',
-    borderRadius: 30,
-    paddingVertical: 12,
+    backgroundColor: '#E8E8E8',
+    padding: 15,
+    borderRadius: 25,
     alignItems: 'center',
-    elevation: 2,
+  },
+  continueButtonActive: {
+    backgroundColor: '#0068FF',
   },
   continueButtonText: {
-    color: '#FFFFFF',
+    color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '500',
   },
 });
 
-export default EnterNameScreen;
+export default UserNameScreen;
