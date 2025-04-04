@@ -8,7 +8,7 @@ import lombok.Data;
 @Data
 public class PhoneLoginRequest {
     @NotBlank(message = "Số điện thoại không được để trống")
-    @Pattern(regexp = "^[0-9]{10}$", message = "Số điện thoại phải có 10 chữ số")
+    @Pattern(regexp = "^[0-9]{9,10}$", message = "Số điện thoại phải có 9-10 chữ số")
     private String phoneNumber;
 
     @NotBlank(message = "OTP không được để trống")
