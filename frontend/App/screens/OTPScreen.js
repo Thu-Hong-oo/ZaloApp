@@ -30,33 +30,35 @@ const OTPScreen = ({ route, navigation }) => {
       Alert.alert('Lỗi', 'Vui lòng nhập mã OTP');
       return;
     }
-
+  
     try {
       setIsLoading(true);
-      console.log('Verifying OTP:', {
-        phoneNumber: phoneNumber,
-        otp: otp
-      });
-      
+      console.log('Starting OTP verification for:', phoneNumber);
+  
       const response = await authService.verifyRegistrationOTP(phoneNumber, otp);
-      console.log('OTP verification response:', response);
-
-      if (response?.message === 'OTP hợp lệ, vui lòng tiếp tục đăng ký') {
-        // OTP hợp lệ, chuyển sang màn hình hoàn tất đăng ký
-        navigation.navigate('CompleteProfile', { phoneNumber });
+      console.log('Server response:', JSON.stringify(response, null, 2));
+  
+      // Kiểm tra success từ API
+      if (response.success) {
+        console.log('OTP is valid, navigating to UserName screen...');
+  
+        // Điều hướng đến màn hình UserName
+        navigation.navigate('UserName', { phoneNumber });
       } else {
+        // Nếu OTP không hợp lệ, hiển thị thông báo lỗi
         Alert.alert('Thông báo', response?.message || 'Mã OTP không hợp lệ');
       }
     } catch (error) {
-      console.error('Error verifying OTP:', error);
+      console.error('Error in handleVerifyOTP:', error);
       Alert.alert(
         'Lỗi',
-        error.response?.data?.message || 'Có lỗi xảy ra khi xác thực OTP'
+        error?.response?.data?.message || 'Có lỗi xảy ra khi xác thực OTP'
       );
     } finally {
       setIsLoading(false);
     }
   };
+  
 
   const handleResendOTP = async () => {
     try {

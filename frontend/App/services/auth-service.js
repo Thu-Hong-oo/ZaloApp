@@ -21,23 +21,31 @@ const authService = {
     }
   },
 
-  // Xác thực OTP đăng ký
-  verifyRegistrationOTP: async (phoneNumber, otp) => {
-    try {
-      console.log('Verifying registration OTP request:', {
-        url: `${API_URL}/register/verify-otp`,
-        data: { phoneNumber, otp }
-      });
-      const response = await axios.post(`${API_URL}/register/verify-otp`, {
-        phoneNumber: phoneNumber,
-        otp: otp
-      });
-      console.log('Verify OTP response:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('Error in verifyRegistrationOTP:', error.response || error);
-      throw error.response?.data || { message: 'Có lỗi xảy ra khi xác thực OTP' };
-    }
+ // Xác thực OTP đăng ký
+verifyRegistrationOTP: async (phoneNumber, otp) => {
+  try {
+    console.log('Verifying registration OTP request:', {
+      url: `${API_URL}/register/verify-otp`,
+      data: { phoneNumber, otp }
+    });
+    const response = await axios.post(`${API_URL}/register/verify-otp`, {
+      phoneNumber: phoneNumber,
+      otp: otp
+    });
+
+    // Giả sử backend trả về cấu trúc ApiResponse
+    console.log('Verify OTP response:', response.data);
+
+    // Chuyển đổi thành ApiResponse nếu chưa trả về đúng định dạng
+    return {
+      success: response.data.success,
+      message: response.data.message || 'Có lỗi xảy ra khi xác thực OTP',
+      data: response.data.data
+    };
+  } catch (error) {
+    console.error('Error in verifyRegistrationOTP:', error.response || error);
+    throw error.response?.data || { message: 'Có lỗi xảy ra khi xác thực OTP' };
+  }
   },
 
   // Hoàn tất đăng ký

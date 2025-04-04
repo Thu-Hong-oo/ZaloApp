@@ -78,10 +78,18 @@ public class AuthController {
     }
 
     @PostMapping("/register/verify-otp")
-    public Mono<ResponseEntity<String>> verifyRegistrationOtp(@Valid @RequestBody RegisterVerifyOtpRequest request) {
+    public Mono<ResponseEntity<ApiResponse>> verifyRegistrationOtp(@Valid @RequestBody RegisterVerifyOtpRequest request) {
         return authService.verifyRegistrationOtp(request)
-                .map(response -> ResponseEntity.ok(response));
+                .map(response -> {
+                    // Xử lý khi nhận được phản hồi hợp lệ
+                    if (response.isSuccess()) {
+                        return ResponseEntity.ok(response); // Trả về HTTP 200 với ApiResponse
+                    } else {
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response); // Trả về HTTP 400 khi không thành công
+                    }
+                });
     }
+    
 
     @PostMapping("/register/complete")
     public Mono<ResponseEntity<AuthResponse>> completeRegistration(@Valid @RequestBody RegisterRequest request) {

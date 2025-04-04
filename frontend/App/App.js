@@ -18,7 +18,7 @@ import Personal from "./screens/PersonalScreen";
 import OTPScreen from "./screens/OTPScreen";
 import UserNameScreen from "./screens/UserNameScreen";
 import EnterProfileInforScreen from "./screens/EnterProfileInforScreen";
-
+import UpdateAvatarScreen from "./screens/UpdateAvatarScreen";
 // Create Auth Context
 export const AuthContext = createContext(null);
 
@@ -28,12 +28,25 @@ const Stack = createNativeStackNavigator();
 // Auth stack
 function AuthStack() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Welcome" component={EnterProfileInforScreen} />
+    <Stack.Navigator 
+      screenOptions={{ 
+        headerShown: false,
+        presentation: 'card'
+      }}
+    >
+      <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="SignUp" component={SignUpScreen} />
       <Stack.Screen name="VerificationCode" component={OTPScreen} />
+      <Stack.Screen 
+        name="UserName" 
+        component={UserNameScreen}
+        options={{
+          gestureEnabled: false
+        }}
+      />
       <Stack.Screen name="EnterProfileInfor" component={EnterProfileInforScreen} />
+      <Stack.Screen name="UpdateAvatar" component={UpdateAvatarScreen} />
     </Stack.Navigator>
   );
 }

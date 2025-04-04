@@ -5,7 +5,7 @@ import reactor.core.publisher.Mono;
 
 public interface ZaloAuthService {
     Mono<String> sendRegistrationOtp(RegisterSendOtpRequest request);
-    Mono<String> verifyRegistrationOtp(RegisterVerifyOtpRequest request);
+    Mono<ApiResponse> verifyRegistrationOtp(RegisterVerifyOtpRequest request);
     Mono<AuthResponse> completeRegistration(RegisterRequest registerRequest);
     Mono<AuthResponse> login(LoginRequest request);
     Mono<AuthResponse> loginWithPhone(PhoneLoginRequest phoneLoginRequest);

@@ -122,7 +122,7 @@ const LoginScreen = () => {
           </View>
         )}
 
-        {/* Submit button */}
+        {/* Submit button - now circular with arrow */}
         <View style={styles.submitButtonContainer}>
           <TouchableOpacity 
             style={styles.submitButton} 
@@ -132,9 +132,7 @@ const LoginScreen = () => {
             {isLoading ? (
               <ActivityIndicator color="white" />
             ) : (
-              <Text style={styles.submitButtonText}>
-                {showOTPInput ? 'Xác thực OTP' : 'Gửi OTP'}
-              </Text>
+              <Ionicons name="arrow-forward" size={28} color="white" />
             )}
           </TouchableOpacity>
         </View>
@@ -234,25 +232,15 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   submitButton: {
-    width: 150,
+    width: 65,  // Changed to be perfectly circular
     height: 65,
-    borderRadius: 32.5,
+    borderRadius: 32.5, // Half of width/height for perfect circle
     backgroundColor: '#1877f2',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#4293f5',
     elevation: 8, 
-  },
-  
-  submitButtonText: {
-    color: '#FFFFFF',
-    fontSize: 32,  // Kích thước lớn hơn để dễ căn chỉnh
-    fontWeight: 'bold',
-    textAlign: 'center', 
-    textAlignVertical: 'center', // Dành cho Android
-    includeFontPadding: false,  // Loại bỏ padding thừa trên Android
-    lineHeight: 36, // Phải gần bằng fontSize hoặc lớn hơn một chút
   },
   forgotPasswordContainer: {
     marginTop: 15,

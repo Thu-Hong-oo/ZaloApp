@@ -3,7 +3,7 @@ POST http://localhost:8080/api/auth/register/send-otp
 Content-Type: application/json
 
 {
-    "phoneNumber": "0376963653"
+    "phoneNumber": "0329267849"
 }
 
 ### Đăng ký - Xác thực OTP
@@ -12,7 +12,7 @@ Content-Type: application/json
 
 {
     "phoneNumber": "0376963653",
-    "otp": "280922"
+    "otp": "128690"
 }
 
 ### Đăng ký - Hoàn tất
