@@ -9,7 +9,7 @@ AWS.config.update({
 
 // Initialize DynamoDB
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
-const TABLE_NAME = process.env.TABLE_NAME;
+const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME;
 
 // Initialize S3
 const s3 = new AWS.S3();
