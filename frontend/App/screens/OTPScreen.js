@@ -33,14 +33,26 @@ const OTPScreen = ({ route, navigation }) => {
 
     try {
       setIsLoading(true);
+      console.log('Verifying OTP:', {
+        phoneNumber: phoneNumber,
+        otp: otp
+      });
+      
       const response = await authService.verifyRegistrationOTP(phoneNumber, otp);
       console.log('OTP verification response:', response);
-      
-      // Nếu xác thực thành công, chuyển đến màn hình tiếp theo
-      navigation.navigate('CompleteProfile', { phoneNumber });
+
+      if (response?.message === 'OTP hợp lệ, vui lòng tiếp tục đăng ký') {
+        // OTP hợp lệ, chuyển sang màn hình hoàn tất đăng ký
+        navigation.navigate('CompleteProfile', { phoneNumber });
+      } else {
+        Alert.alert('Thông báo', response?.message || 'Mã OTP không hợp lệ');
+      }
     } catch (error) {
       console.error('Error verifying OTP:', error);
-      Alert.alert('Lỗi', error.message || 'Có lỗi xảy ra khi xác thực OTP');
+      Alert.alert(
+        'Lỗi',
+        error.response?.data?.message || 'Có lỗi xảy ra khi xác thực OTP'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -49,7 +61,7 @@ const OTPScreen = ({ route, navigation }) => {
   const handleResendOTP = async () => {
     try {
       setIsLoading(true);
-      await authService.sendRegistrationOTP(phoneNumber);
+      const response = await authService.sendRegistrationOTP(phoneNumber);
       Alert.alert('Thành công', 'Mã OTP mới đã được gửi');
     } catch (error) {
       Alert.alert('Lỗi', error.message || 'Có lỗi xảy ra khi gửi lại OTP');
