@@ -19,6 +19,7 @@ import OTPScreen from "./screens/OTPScreen";
 import UserNameScreen from "./screens/UserNameScreen";
 import EnterProfileInforScreen from "./screens/EnterProfileInforScreen";
 import UpdateAvatarScreen from "./screens/UpdateAvatarScreen";
+import TestCorsScreen from "./screens/TestCorsScreen";
 // Create Auth Context
 export const AuthContext = createContext(null);
 
@@ -45,8 +46,27 @@ function AuthStack() {
           gestureEnabled: false
         }}
       />
-      <Stack.Screen name="EnterProfileInfor" component={EnterProfileInforScreen} />
-      <Stack.Screen name="UpdateAvatar" component={UpdateAvatarScreen} />
+      <Stack.Screen 
+        name="EnterProfileInfor" 
+        component={EnterProfileInforScreen}
+        options={{
+          gestureEnabled: false
+        }}
+      />
+      <Stack.Screen 
+        name="UpdateAvatar" 
+        component={UpdateAvatarScreen}
+        options={{
+          gestureEnabled: false
+        }}
+      />
+      <Stack.Screen 
+        name="TestCors" 
+        component={TestCorsScreen}
+        options={{
+          gestureEnabled: false
+        }}
+      />
     </Stack.Navigator>
   );
 }

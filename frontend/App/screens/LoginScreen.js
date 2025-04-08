@@ -14,6 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 import {useNavigation} from '@react-navigation/native';
 import { AuthContext } from '../App';
 import authService from '../services/auth-service';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import TokenService from '../services/token-service';
 
 const LoginScreen = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -54,7 +56,11 @@ const LoginScreen = () => {
       setIsLoading(true);
       const response = await authService.loginWithPhone(phoneNumber, otp);
       
-      // Lưu token và refresh token
+      // Lưu token và refresh token vào AsyncStorage sử dụng TokenService
+      await TokenService.saveTokens(response.token, response.refreshToken);
+      await AsyncStorage.setItem('userData', JSON.stringify(response.user));
+      
+      // Cập nhật state
       setToken(response.token);
       setRefreshToken(response.refreshToken);
       setUser(response.user);

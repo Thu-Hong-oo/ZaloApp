@@ -33,6 +33,14 @@ const OnboardingScreen = () => {
         <Text style={styles.logoText}>Zalo</Text>
       </View>
       
+      {/* Test CORS Button */}
+      <TouchableOpacity 
+        style={styles.testCorsButton}
+        onPress={() => navigation.navigate('TestCors')}
+      >
+        <Text style={styles.testCorsButtonText}>Test CORS</Text>
+      </TouchableOpacity>
+      
       {/* Illustration */}
       <View style={styles.illustrationContainer}>
         <View style={styles.cityBackground}>
@@ -346,7 +354,19 @@ const styles = StyleSheet.create({
   navButton: {
     padding: 10,
   },
-
+  testCorsButton: {
+    backgroundColor: '#0068ff',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    marginTop: 20,
+    alignSelf: 'center',
+  },
+  testCorsButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
 });
 
 export default OnboardingScreen;

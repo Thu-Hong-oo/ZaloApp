@@ -37,22 +37,22 @@ import java.util.UUID;
 public class ZaloAuthServiceImpl implements ZaloAuthService {
 
     @Autowired
-    private RedisRefreshTokenRepository refreshTokenRepository;
+    private RedisRefreshTokenRepository refreshTokenRepository;//Lưu trữ token để đăng xuất
 
     @Autowired
-    private PasswordEncoder passwordEncoder;
+    private PasswordEncoder passwordEncoder;//Mã hóa mật khẩu
 
     @Autowired
-    private JwtTokenProvider jwtTokenProvider;
+    private JwtTokenProvider jwtTokenProvider;//Xử lý JWT
 
     @Autowired
-    private ReactiveAuthenticationManager authenticationManager;
+    private ReactiveAuthenticationManager authenticationManager;//Quản lý phiên đăng nhập
 
     @Autowired
     private TwilioOTPService twilioOTPService;
 
     @Autowired
-    private WebClient.Builder webClientBuilder;
+    private WebClient.Builder webClientBuilder;//Client để gọi các service khác
 
     @Value("${user.service.name}")
     private String userServiceName;

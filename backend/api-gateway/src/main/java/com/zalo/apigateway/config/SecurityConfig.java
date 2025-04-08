@@ -17,8 +17,10 @@ public class SecurityConfig {
                 .cors(cors -> {})
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/api/auth/**").permitAll()
-                        .anyExchange().authenticated())
+                        .pathMatchers("/api/users/profile").permitAll()
+                        .pathMatchers("/api/users/register").permitAll()
+                        .pathMatchers("/api/test/**").permitAll()
+                        .anyExchange().permitAll())
                 .build();
     }
-
 }
