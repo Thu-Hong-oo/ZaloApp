@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/")
 public class AuthController {
 
     @Value("${user.service.name}")

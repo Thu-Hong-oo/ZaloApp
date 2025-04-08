@@ -20,7 +20,7 @@ POST http://localhost:8080/api/auth/register/complete
 Content-Type: application/json
 
 {
-    "phoneNumber": "0376963653",
+    "phoneNumber": "0376963651",
     "password": "123456",
     "fullName": "Test User"
 }

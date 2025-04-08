@@ -30,12 +30,20 @@ public class UserServiceClient {
     private final WebClient webClient;
     private final String userServiceName;
     
+    /**
+     * Khởi tạo UserServiceClient với WebClient.Builder được cấu hình LoadBalanced
+     * và tên service từ cấu hình
+     * 
+     * @param webClientBuilder WebClient.Builder được cấu hình LoadBalanced
+     * @param userServiceName Tên service từ cấu hình (user.service.name)
+     */
     public UserServiceClient(
             @LoadBalanced WebClient.Builder webClientBuilder,
             @Value("${user.service.name:USER-SERVICE}") String userServiceName) {
         this.userServiceName = userServiceName;
         log.info("Khởi tạo UserServiceClient với tên service: {}", userServiceName);
         
+        // Cấu hình WebClient với các header mặc định và filter để log request/response
         this.webClient = webClientBuilder
             .baseUrl("http://" + userServiceName)
             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
@@ -46,6 +54,9 @@ public class UserServiceClient {
             .build();
     }
 
+    /**
+     * Filter để log request trước khi gửi
+     */
     private ExchangeFilterFunction logRequest() {
         return ExchangeFilterFunction.ofRequestProcessor(clientRequest -> {
             log.info("Yêu cầu: {} {}", clientRequest.method(), clientRequest.url());
@@ -55,6 +66,9 @@ public class UserServiceClient {
         });
     }
 
+    /**
+     * Filter để log response sau khi nhận
+     */
     private ExchangeFilterFunction logResponse() {
         return ExchangeFilterFunction.ofResponseProcessor(clientResponse -> {
             log.info("Trạng thái phản hồi: {}", clientResponse.statusCode());
@@ -62,12 +76,18 @@ public class UserServiceClient {
         });
     }
 
+    /**
+     * Đăng ký người dùng mới
+     * 
+     * @param request Thông tin đăng ký người dùng
+     * @return Mono<UserResponse> Kết quả đăng ký
+     */
     public Mono<UserResponse> registerUser(UserRegisterRequest request) {
         log.info("Đang thử đăng ký người dùng với số điện thoại: {}", request.getPhone());
         
         return webClient
             .post()
-            .uri("/api/auth/register")
+            .uri("/api/users/register")  // Chuẩn hóa endpoint
             .bodyValue(request)
             .retrieve()
             .onStatus(status -> status.is4xxClientError(), response -> 
@@ -104,12 +124,18 @@ public class UserServiceClient {
                     userServiceName, request.getPhone()));
     }
 
+    /**
+     * Lấy thông tin người dùng theo số điện thoại
+     * 
+     * @param phone Số điện thoại cần tìm
+     * @return Mono<UserResponse> Thông tin người dùng
+     */
     public Mono<UserResponse> getUserByPhone(String phone) {
         log.info("Đang lấy thông tin người dùng với số điện thoại: {}", phone);
         
         return webClient
             .get()
-            .uri("/api/users/phone/{phone}", phone)
+            .uri("/api/users/phone/{phone}", phone)  // Chuẩn hóa endpoint
             .retrieve()
             .onStatus(status -> status.is4xxClientError(), response -> 
                 response.bodyToMono(String.class)

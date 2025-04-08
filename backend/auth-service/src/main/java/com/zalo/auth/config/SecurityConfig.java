@@ -32,14 +32,15 @@ public class SecurityConfig {
                 .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
                 .authorizeExchange(auth -> auth
                         .pathMatchers(
-                            "/api/auth/register/send-otp",
-                            "/api/auth/register/verify-otp",
-                            "/api/auth/register/complete",
-                            "/api/auth/login",
-                            "/api/auth/login/phone",
-                            "/api/auth/refresh-token",
-                            "/api/auth/send-otp",
-                            "/api/auth/validate-token"
+                            "/register/send-otp",
+                            "/register/verify-otp",
+                            "/register/complete",
+                            "/login",
+                            "/login/phone",
+                            "/refresh-token",
+                            "/send-otp",
+                            "/validate-token",
+                            "/jwt-secret"
                         ).permitAll()
                         .pathMatchers(HttpMethod.OPTIONS).permitAll()
                         .anyExchange().authenticated()

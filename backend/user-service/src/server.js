@@ -1,9 +1,9 @@
 const express = require('express');
 const cors = require('cors');
-const { Eureka } = require('eureka-js-client');
 const userRoutes = require('./routes/user.routes');
 const WebSocketServer = require('./websocket/server');
 const http = require('http');
+const eureka = require('./eureka');
 
 require('dotenv').config();
 
@@ -12,34 +12,6 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
-
-// Eureka client configuration
-const eurekaClient = new Eureka({
-    instance: {
-        app: 'user-service',
-        hostName: 'localhost',
-        ipAddr: '127.0.0.1',
-        port: {
-            '$': process.env.PORT || 3001,
-            '@enabled': true,
-        },
-        vipAddress: 'user-service',
-        dataCenterInfo: {
-            '@class': 'com.netflix.appinfo.InstanceInfo$DefaultDataCenterInfo',
-            name: 'MyOwn',
-        },
-    },
-    eureka: {
-        host: 'localhost',
-        port: 8761,
-        servicePath: '/eureka/apps/',
-    },
-});
-
-// Connect to Eureka server
-eurekaClient.start(error => {
-    console.log(error || 'Connected to Eureka Server');
-});
 
 // Routes
 app.use('/api/users', userRoutes);
@@ -57,14 +29,28 @@ const wss = new WebSocketServer(server);
 
 // Start server
 const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
     console.log(`User service is running on port ${PORT}`);
+    
+    // Register with Eureka
+    try {
+        await eureka.start();
+        console.log('Successfully registered with Eureka');
+    } catch (error) {
+        console.error('Failed to register with Eureka:', error);
+    }
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
     console.log('SIGTERM signal received');
-    eurekaClient.stop();
+    try {
+        await eureka.stop();
+        console.log('Successfully de-registered from Eureka');
+    } catch (error) {
+        console.error('Error de-registering from Eureka:', error);
+    }
+    
     server.close(() => {
         console.log('Server closed');
         process.exit(0);

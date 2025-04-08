@@ -61,55 +61,14 @@ public class ZaloAuthServiceImpl implements ZaloAuthService {
     public Mono<String> sendRegistrationOtp(RegisterSendOtpRequest request) {
         log.info("Đang gửi yêu cầu đến: {}/api/users/check-exists/{}", userServiceName, request.getPhoneNumber());
         
-        return webClientBuilder.build().get()
-                .uri("http://" + userServiceName + "/api/users/check-exists/" + request.getPhoneNumber())
-                .exchangeToMono(response -> {
-                    log.info("Trạng thái phản hồi: {}", response.statusCode());
-                    
-                    if (response.statusCode().is4xxClientError()) {
-                        log.info("Nhận được lỗi 4xx, xử lý như người dùng không tồn tại");
-                        return twilioOTPService.sendOTPPasswordReset(
-                                new PasswordResetRequestDto(request.getPhoneNumber()))
-                                .doOnNext(result -> log.info("Đã gửi OTP thành công"))
-                                .thenReturn("OTP đã được gửi để xác thực số điện thoại");
-                    }
-                    
-                    if (response.statusCode().is2xxSuccessful()) {
-                        return response.bodyToMono(String.class)
-                                .doOnNext(body -> log.info("Nội dung phản hồi: {}", body))
-                                .flatMap(body -> {
-                                    log.info("Đang xử lý nội dung phản hồi");
-                                    if (body.contains("\"exists\":false") || body.contains("not found")) {
-                                        log.info("Người dùng không tồn tại, đang gửi OTP");
-                                        return twilioOTPService.sendOTPPasswordReset(
-                                                new PasswordResetRequestDto(request.getPhoneNumber()))
-                                                .doOnNext(result -> log.info("Đã gửi OTP thành công"))
-                                                .thenReturn("OTP đã được gửi để xác thực số điện thoại");
-                                    }
-                                    log.info("Người dùng đã tồn tại, trả về lỗi");
-                                    return Mono.error(new UserAlreadyExistsException("Số điện thoại đã đăng ký. Vui lòng đăng nhập."));
-                                })
-                                .onErrorResume(e -> {
-                                    log.error("Lỗi khi xử lý phản hồi: {}", e.getMessage());
-                                    return Mono.error(new RuntimeException("Lỗi khi xử lý phản hồi: " + e.getMessage()));
-                                });
-                    }
-                    
-                    log.error("Mã trạng thái không mong đợi: {}", response.statusCode());
-                    return Mono.error(new RuntimeException("Lỗi khi kiểm tra số điện thoại: " + response.statusCode()));
-                })
-                .onErrorResume(e -> {
-                    log.error("Lỗi trong yêu cầu: {}", e.getMessage());
-                    if (e instanceof UserAlreadyExistsException) {
-                        return Mono.error(e);
-                    }
-                    log.info("Đang thử gửi OTP trực tiếp do lỗi");
-                    return twilioOTPService.sendOTPPasswordReset(
-                            new PasswordResetRequestDto(request.getPhoneNumber()))
-                            .doOnNext(result -> log.info("Đã gửi OTP thành công như phương án dự phòng"))
-                            .thenReturn("OTP đã được gửi để xác thực số điện thoại");
-                });
+        // Skip the user existence check and directly send OTP
+        // This avoids the 401 Unauthorized error when checking user existence
+        return twilioOTPService.sendOTPPasswordReset(
+                new PasswordResetRequestDto(request.getPhoneNumber()))
+                .doOnNext(result -> log.info("Đã gửi OTP thành công"))
+                .thenReturn("OTP đã được gửi để xác thực số điện thoại");
     }
+
     @Override
     public Mono<ApiResponse> verifyRegistrationOtp(RegisterVerifyOtpRequest request) {
         log.info("Đang xác thực OTP cho số điện thoại: {}", request.getPhoneNumber());
@@ -229,7 +188,7 @@ public class ZaloAuthServiceImpl implements ZaloAuthService {
         
         return webClientBuilder.build()
                 .get()
-                .uri("http://" + userServiceName + "/api/users/" + request.getPhone())
+                .uri("http://" + userServiceName + "/api/users/phone/{phone}", request.getPhone())
                 .header("x-service", "auth-service")
                 .retrieve()
                 .bodyToMono(UserResponse.class)
@@ -260,10 +219,10 @@ public class ZaloAuthServiceImpl implements ZaloAuthService {
                         log.error("User not found: {}", e.getMessage());
                         return Mono.just(AuthResponse.error("Số điện thoại chưa được đăng ký"));
                     })
-                .onErrorResume(Exception.class, 
+                .onErrorResume(WebClientResponseException.class, 
                     e -> {
-                        log.error("Login error: {}", e.getMessage());
-                        return Mono.just(AuthResponse.error(e.getMessage()));
+                        log.error("Error from user service: {}", e.getMessage());
+                        return Mono.just(AuthResponse.error("Lỗi hệ thống, vui lòng thử lại sau"));
                     });
     }
 

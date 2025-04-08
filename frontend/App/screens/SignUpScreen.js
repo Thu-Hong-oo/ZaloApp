@@ -167,9 +167,10 @@ export default function PhoneInputScreen({ navigation }) {
       </View>
       
       {/* Login link */}
-      <View style={styles.loginContainer}>
-        <TouchableOpacity style={styles.loginText} onPress={() => navigation.navigate('Login')}>
-          Bạn đã có tài khoản? <Text style={styles.loginLink}>Đăng nhập ngay</Text>
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>Bạn đã có tài khoản?</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          <Text style={styles.footerLink}>Đăng nhập</Text>
         </TouchableOpacity>
       </View>
 
@@ -307,18 +308,18 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '500',
   },
-  loginContainer: {
+  footer: {
     position: 'absolute',
     bottom: 30,
     left: 0,
     right: 0,
     alignItems: 'center',
   },
-  loginText: {
+  footerText: {
     fontSize: 14,
     color: '#333',
   },
-  loginLink: {
+  footerLink: {
     color: '#0068FF',
     fontWeight: '500',
   },
