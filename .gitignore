@@ -1,0 +1,9 @@
+# Bỏ qua thư mục node_modules trong thư mục gốc và thư mục con
+node_modules/
+backend/user-service/node_modules/
+
+# Bỏ qua các file môi trường và cấu hình không muốn theo dõi
+.env
+backend/user-service/.env
+backend/user-service/package-lock.json
+backend/user-service/package.json
