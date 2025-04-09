@@ -33,13 +33,7 @@ const OnboardingScreen = () => {
         <Text style={styles.logoText}>Zalo</Text>
       </View>
       
-      {/* Test CORS Button */}
-      <TouchableOpacity 
-        style={styles.testCorsButton}
-        onPress={() => navigation.navigate('TestCors')}
-      >
-        <Text style={styles.testCorsButtonText}>Test CORS</Text>
-      </TouchableOpacity>
+    
       
       {/* Illustration */}
       <View style={styles.illustrationContainer}>

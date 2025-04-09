@@ -186,43 +186,49 @@ public class ZaloAuthServiceImpl implements ZaloAuthService {
     public Mono<AuthResponse> login(LoginRequest request) {
         log.info("Attempting login for phone: {}", request.getPhone());
         
+        String serviceUrl = "http://" + userServiceName;
+        log.info("Calling user service at: {}", serviceUrl);
+        
         return webClientBuilder.build()
                 .get()
-                .uri("http://" + userServiceName + "/api/users/phone/{phone}", request.getPhone())
+                .uri(serviceUrl + "/api/users/{phone}", request.getPhone())
                 .header("x-service", "auth-service")
                 .retrieve()
                 .bodyToMono(UserResponse.class)
-                .flatMap(response -> {
+                .doOnNext(response -> {
                     log.info("Received response from user service: {}", response);
+                })
+                .flatMap(response -> {
+                    log.info("Processing user service response");
                     
                     if (!response.isSuccess() || response.getData() == null) {
                         log.error("User service returned error or null data");
-                        return Mono.just(AuthResponse.error("Số điện thoại chưa được đăng ký"));
+                        return Mono.just(new AuthResponse(request.getPhone(), null, null, "Số điện thoại chưa được đăng ký", false));
                     }
                     
                     UserData userData = response.getData();
                     if (userData.getPassword() == null) {
                         log.error("User password is null");
-                        return Mono.just(AuthResponse.error("Lỗi xác thực"));
+                        return Mono.just(new AuthResponse(request.getPhone(), null, null, "Lỗi xác thực", false));
                     }
                     
+                    log.info("Comparing passwords for user: {}", request.getPhone());
                     if (passwordEncoder.matches(request.getPassword(), userData.getPassword())) {
                         log.info("Password matches, generating tokens");
                         return generateAuthTokens(request.getPhone());
                     }
                     
                     log.info("Password does not match");
-                    return Mono.just(AuthResponse.error("Mật khẩu không đúng"));
+                    return Mono.just(new AuthResponse(request.getPhone(), null, null, "Mật khẩu không đúng", false));
                 })
-                .onErrorResume(WebClientResponseException.NotFound.class, 
-                    e -> {
-                        log.error("User not found: {}", e.getMessage());
-                        return Mono.just(AuthResponse.error("Số điện thoại chưa được đăng ký"));
-                    })
+                .onErrorResume(e -> {
+                    log.error("User not found: {}", e.getMessage());
+                    return Mono.just(new AuthResponse(request.getPhone(), null, null, "Số điện thoại chưa được đăng ký", false));
+                })
                 .onErrorResume(WebClientResponseException.class, 
                     e -> {
-                        log.error("Error from user service: {}", e.getMessage());
-                        return Mono.just(AuthResponse.error("Lỗi hệ thống, vui lòng thử lại sau"));
+                        log.error("Error from user service: {} - {}", e.getStatusCode(), e.getMessage());
+                        return Mono.just(new AuthResponse(request.getPhone(), null, null, "Lỗi hệ thống, vui lòng thử lại sau", false));
                     });
     }
 

@@ -20,6 +20,7 @@ import UserNameScreen from "./screens/UserNameScreen";
 import EnterProfileInforScreen from "./screens/EnterProfileInforScreen";
 import UpdateAvatarScreen from "./screens/UpdateAvatarScreen";
 import TestCorsScreen from "./screens/TestCorsScreen";
+import ProfileDetailScreen from "./screens/ProfileDetailScreen";
 // Create Auth Context
 export const AuthContext = createContext(null);
 
@@ -112,6 +113,7 @@ function PersonalStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Personal" component={Personal} />
+      <Stack.Screen name="ProfileDetail" component={ProfileDetailScreen} />
     </Stack.Navigator>
   );
 }
