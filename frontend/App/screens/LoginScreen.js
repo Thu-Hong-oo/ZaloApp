@@ -8,7 +8,8 @@ import {
   Alert,
   ActivityIndicator,
   SafeAreaView,
-  StatusBar
+  StatusBar,
+  Modal
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -21,6 +22,8 @@ const LoginScreen = ({ navigation }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
+  const [forgotPasswordPhone, setForgotPasswordPhone] = useState('');
 
   const handleLogin = async () => {
     if (!phoneNumber) {
@@ -46,6 +49,28 @@ const LoginScreen = ({ navigation }) => {
     } catch (error) {
       console.error('Login error:', error);
       Alert.alert('Lỗi', error.response?.data?.error || 'Đăng nhập thất bại');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!forgotPasswordPhone) {
+      Alert.alert('Lỗi', 'Vui lòng nhập số điện thoại');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await AuthService.forgotPassword(forgotPasswordPhone);
+      Alert.alert(
+        'Thành công',
+        'Mật khẩu mới đã được gửi đến số điện thoại của bạn',
+        [{ text: 'OK', onPress: () => setShowForgotPasswordModal(false) }]
+      );
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      Alert.alert('Lỗi', error.message || 'Không thể lấy lại mật khẩu');
     } finally {
       setLoading(false);
     }
@@ -127,9 +152,61 @@ const LoginScreen = ({ navigation }) => {
         </View>
 
         {/* Forgot password link */}
-        <TouchableOpacity style={styles.forgotPasswordContainer}>
+        <TouchableOpacity 
+          style={styles.forgotPasswordContainer}
+          onPress={() => setShowForgotPasswordModal(true)}
+        >
           <Text style={styles.forgotPasswordText}>Lấy lại mật khẩu</Text>
         </TouchableOpacity>
+
+        {/* Forgot Password Modal */}
+        <Modal
+          visible={showForgotPasswordModal}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setShowForgotPasswordModal(false)}
+          style={{ pointerEvents: 'box-none' }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Lấy lại mật khẩu</Text>
+              <Text style={styles.modalDescription}>
+                Vui lòng nhập số điện thoại đã đăng ký để lấy lại mật khẩu
+              </Text>
+              
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Số điện thoại"
+                  value={forgotPasswordPhone}
+                  onChangeText={setForgotPasswordPhone}
+                  keyboardType="phone-pad"
+                />
+              </View>
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setShowForgotPasswordModal(false)}
+                >
+                  <Text style={styles.cancelButtonText}>Hủy</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.submitButton]}
+                  onPress={handleForgotPassword}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text style={styles.submitButtonText}>Xác nhận</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
 
         {/* FAQ link */}
         <View style={styles.faqContainer}>
@@ -263,6 +340,55 @@ const styles = StyleSheet.create({
   },
   linkText: {
     color: '#1877f2',
+    fontSize: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    width: '80%',
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  modalDescription: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  modalButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 5,
+    marginHorizontal: 5,
+  },
+  cancelButton: {
+    backgroundColor: '#E0E0E0',
+  },
+  cancelButtonText: {
+    color: '#666',
+    textAlign: 'center',
+    fontSize: 16,
+  },
+  submitButtonText: {
+    color: 'white',
+    textAlign: 'center',
     fontSize: 16,
   },
 });

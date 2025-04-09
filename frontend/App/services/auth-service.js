@@ -256,8 +256,18 @@ class AuthService {
       const response = await this.api.post('/forgot-password', { phoneNumber });
       return response.data;
     } catch (error) {
-      console.error('Forgot password error:', error.response?.data || error);
-      throw error.response?.data || error;
+      console.error('Forgot password error:', error);
+      
+      // Handle specific error cases
+      if (error.response?.status === 401) {
+        throw new Error('Số điện thoại không tồn tại trong hệ thống');
+      } else if (error.response?.status === 404) {
+        throw new Error('Không tìm thấy tài khoản với số điện thoại này');
+      } else if (error.response?.status === 429) {
+        throw new Error('Bạn đã yêu cầu quá nhiều lần. Vui lòng thử lại sau');
+      } else {
+        throw new Error('Không thể lấy lại mật khẩu. Vui lòng thử lại sau');
+      }
     }
   }
 
