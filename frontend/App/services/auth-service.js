@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { API_URL } from '../config';
+import { config } from '../config/config';
 import TokenService from './token-service';
 
 /**
@@ -9,27 +9,28 @@ import TokenService from './token-service';
  * - Sử dụng localhost cho iOS simulator
  * - Sử dụng IP thật cho thiết bị thật
  */
-const API_URL_AUTH = `${API_URL}/api/auth`;
+const API_URL_AUTH = `${config.API_URL}/api/auth`;
 
 /**
  * Cấu hình axios với timeout và headers mặc định
  */
-const axiosInstance = axios.create({
-  baseURL: API_URL_AUTH,
-  timeout: 30000, // Tăng timeout lên 30 giây
+const api = axios.create({
+  baseURL: config.API_URL,
+  timeout: 30000,
   headers: {
-    'Content-Type': 'application/json',
+      'Content-Type': 'application/json',
   }
 });
 
 // Thêm interceptor để log request
-axiosInstance.interceptors.request.use(
+api.interceptors.request.use(
   config => {
     console.log('Request:', {
       url: config.url,
       method: config.method,
       data: config.data,
-      headers: config.headers
+      headers: config.headers,
+      baseURL: config.baseURL
     });
     return config;
   },
@@ -40,11 +41,12 @@ axiosInstance.interceptors.request.use(
 );
 
 // Thêm interceptor để log response
-axiosInstance.interceptors.response.use(
+api.interceptors.response.use(
   response => {
     console.log('Response:', {
       status: response.status,
-      data: response.data
+      data: response.data,
+      headers: response.headers
     });
     return response;
   },
@@ -52,7 +54,8 @@ axiosInstance.interceptors.response.use(
     console.error('Response Error:', {
       message: error.message,
       response: error.response?.data,
-      status: error.response?.status
+      status: error.response?.status,
+      config: error.config
     });
     return Promise.reject(error);
   }
@@ -63,7 +66,7 @@ axiosInstance.interceptors.response.use(
  */
 class AuthService {
   constructor() {
-    this.api = axiosInstance;
+    this.api = api;
   }
 
   /**
@@ -222,11 +225,14 @@ class AuthService {
    */
   async sendOTP(phoneNumber) {
     try {
-      const response = await this.api.post('/send-otp', { phoneNumber });
+      console.log('Using API URL:', config.API_URL);
+      const response = await this.api.post('/auth/register/send-otp', {
+        phoneNumber: phoneNumber
+      });
       return response.data;
     } catch (error) {
-      console.error('Send OTP error:', error.response?.data || error);
-      throw error.response?.data || error;
+      console.error('Send OTP error:', error);
+      throw new Error('Lỗi server: Không thể gửi OTP. Vui lòng thử lại sau.');
     }
   }
 
@@ -238,7 +244,7 @@ class AuthService {
    */
   async verifyOTP(phoneNumber, otp) {
     try {
-      const response = await this.api.post('/verify-otp', { phoneNumber, otp });
+      const response = await this.api.post('/auth/register/verify-otp', { phoneNumber, otp });
       return response.data;
     } catch (error) {
       console.error('Verify OTP error:', error.response?.data || error);
@@ -247,41 +253,74 @@ class AuthService {
   }
 
   /**
-   * Quên mật khẩu
+   * Gửi OTP quên mật khẩu
    * @param {string} phoneNumber - Số điện thoại cần đặt lại mật khẩu
-   * @returns {Promise} - Kết quả đặt lại mật khẩu
+   * @returns {Promise} - Kết quả gửi OTP
    */
   async forgotPassword(phoneNumber) {
     try {
-      const response = await this.api.post('/forgot-password', { phoneNumber });
+      const response = await this.api.post('/auth/send-otp', { phone: phoneNumber });
       return response.data;
     } catch (error) {
       console.error('Forgot password error:', error);
-      
-      // Handle specific error cases
-      if (error.response?.status === 401) {
-        throw new Error('Số điện thoại không tồn tại trong hệ thống');
-      } else if (error.response?.status === 404) {
-        throw new Error('Không tìm thấy tài khoản với số điện thoại này');
-      } else if (error.response?.status === 429) {
-        throw new Error('Bạn đã yêu cầu quá nhiều lần. Vui lòng thử lại sau');
-      } else {
-        throw new Error('Không thể lấy lại mật khẩu. Vui lòng thử lại sau');
+      if (error.response?.status === 500) {
+        throw new Error('Lỗi server: Không thể gửi OTP. Vui lòng thử lại sau.');
       }
+      throw error;
     }
   }
 
   /**
-   * Reset mật khẩu
+   * Xác thực OTP và đặt lại mật khẩu
    * @param {Object} resetData - Thông tin đặt lại mật khẩu
    * @returns {Promise} - Kết quả đặt lại mật khẩu
    */
   async resetPassword(resetData) {
     try {
-      const response = await this.api.post('/reset-password', resetData);
+      const response = await this.api.post('/auth/forgot-password/verify-otp', resetData);
       return response.data;
     } catch (error) {
-      console.error('Reset password error:', error.response?.data || error);
+      console.error('Reset password error:', error);
+      if (error.response?.status === 400) {
+        throw new Error(error.response.data.message || 'Mã OTP không hợp lệ hoặc đã hết hạn');
+      } else {
+        throw new Error(error.response?.data?.message || 'Không thể đặt lại mật khẩu. Vui lòng thử lại sau');
+      }
+    }
+  }
+
+  /**
+   * Hoàn tất đăng ký
+   * @param {Object} userData - Thông tin người dùng cần đăng ký
+   * @returns {Promise} - Kết quả đăng ký
+   */
+  async completeRegistration(userData) {
+    try {
+      const response = await this.api.post('/auth/register/complete', userData);
+      return response.data;
+    } catch (error) {
+      console.error('Complete registration error:', error.response?.data || error);
+      throw error.response?.data || error;
+    }
+  }
+
+  /**
+   * Tải lên ảnh đại diện
+   * @param {FormData} formData - FormData chứa file ảnh
+   * @returns {Promise} - Kết quả tải lên
+   */
+  async uploadAvatar(formData) {
+    try {
+      const token = await TokenService.getAccessToken();
+      const response = await this.api.post('/auth/upload-avatar', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Upload avatar error:', error.response?.data || error);
       throw error.response?.data || error;
     }
   }

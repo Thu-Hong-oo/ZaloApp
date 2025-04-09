@@ -3,7 +3,7 @@ POST http://localhost:8080/api/auth/register/send-otp
 Content-Type: application/json
 
 {
-    "phoneNumber": "0329267849"
+    "phoneNumber": "0376963653"
 }
 
 ### Đăng ký - Xác thực OTP
@@ -32,17 +32,17 @@ POST http://localhost:8000/api/auth/login
 Content-Type: application/json
 
 {
-    "phone": "0111111115",
+    "phone": "0376963611",
     "password": "123456"
 }
 
 ### Lấy thông tin profile
-GET http://localhost:3000/api/users/profile
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzODM3NTE5LCJpYXQiOjE3NDM3NTExMTksImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.vpuMq1-Wab-7KY15UpCTwG7-ut57SmHQBLaU2A_XSlE
+GET http://localhost:8000/api/users/profile
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjExIiwiZXhwIjoxNzQ0MjcyMjUyLCJpYXQiOjE3NDQxODU4NTIsImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.YURxKBvBOZMyxQ-zKR2Gow9UGNgkmI-DnNVziGeBSoI
 
 ### Cập nhật profile
 PUT http://localhost:3000/api/users/profile
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjUzIiwiZXhwIjoxNzQzODM3NTE5LCJpYXQiOjE3NDM3NTExMTksImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.vpuMq1-Wab-7KY15UpCTwG7-ut57SmHQBLaU2A_XSlE
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMzc2OTYzNjExIiwiZXhwIjoxNzQ0MjcwOTAxLCJpYXQiOjE3NDQxODQ1MDEsImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdfQ.8MCE-y-leokzlouMrgwksKIastIzSq7b1kTMcjheuDc
 Content-Type: application/json
 
 {

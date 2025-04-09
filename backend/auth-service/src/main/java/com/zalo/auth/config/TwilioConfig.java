@@ -11,7 +11,7 @@ public class TwilioConfig {
     @Value("${twilio.auth_token}")
     private String authToken;
 
-    @Value("${twilio.trial_number}")
+    @Value("${twilio.phone_number}")
     private String phoneNumber;
 
     public String getAccountSid() {

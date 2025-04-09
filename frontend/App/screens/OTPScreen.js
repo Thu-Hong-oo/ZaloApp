@@ -35,7 +35,7 @@ const OTPScreen = ({ route, navigation }) => {
       setIsLoading(true);
       console.log('Starting OTP verification for:', phoneNumber);
   
-      const response = await authService.verifyRegistrationOTP(phoneNumber, otp);
+      const response = await authService.verifyOTP(phoneNumber, otp);
       console.log('Server response:', JSON.stringify(response, null, 2));
   
       // Kiểm tra success từ API

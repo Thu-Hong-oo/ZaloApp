@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const User = require('../models/user.model');
+const dynamoDB = require('../config/dynamodb');
 
 // Endpoint đăng ký mới
 router.post('/register', async (req, res) => {
@@ -58,6 +59,121 @@ router.get('/check-exists/:phone', async (req, res) => {
         console.error('Error checking phone:', error);
         res.status(500).json({ message: 'Lỗi khi kiểm tra số điện thoại' });
     }
+});
+
+// Endpoint gửi OTP quên mật khẩu
+router.post('/forgot-password/send-otp', async (req, res) => {
+    try {
+        const { phone } = req.body;
+
+        // Kiểm tra xem số điện thoại có tồn tại không
+        const user = await User.getByPhone(phone);
+        if (!user) {
+            return res.status(404).json({ 
+                success: false,
+                message: 'Số điện thoại không tồn tại trong hệ thống' 
+            });
+        }
+
+        // Tạo mã OTP ngẫu nhiên 6 chữ số
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        // Lưu OTP vào DynamoDB với thời gian hết hạn 5 phút
+        const otpParams = {
+            TableName: 'otps',
+            Item: {
+                phone,
+                otp,
+                type: 'forgot-password', // Phân biệt OTP quên mật khẩu với OTP đăng ký
+                expiresAt: Math.floor(Date.now() / 1000) + 300, // 5 phút
+                createdAt: new Date().toISOString()
+            }
+        };
+
+        await dynamoDB.put(otpParams).promise();
+
+        // TODO: Gửi OTP qua SMS hoặc email
+        console.log(`OTP for ${phone}: ${otp}`);
+
+        res.json({ 
+            success: true,
+            message: 'Mã OTP đã được gửi đến số điện thoại của bạn'
+        });
+    } catch (error) {
+        console.error('Error in send OTP:', error);
+        res.status(500).json({ 
+            success: false,
+            message: 'Lỗi trong quá trình gửi OTP' 
+        });
+    }
+});
+
+// Endpoint xác thực OTP và đặt lại mật khẩu
+router.post('/forgot-password/verify-otp', async (req, res) => {
+    try {
+        const { phone, otp, newPassword } = req.body;
+
+        // Kiểm tra OTP
+        const otpParams = {
+            TableName: 'otps',
+            Key: { 
+                phone,
+                type: 'forgot-password' // Phân biệt OTP quên mật khẩu với OTP đăng ký
+            }
+        };
+
+        const otpData = await dynamoDB.get(otpParams).promise();
+        
+        if (!otpData.Item || otpData.Item.otp !== otp) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'Mã OTP không hợp lệ' 
+            });
+        }
+
+        // Kiểm tra thời gian hết hạn
+        if (otpData.Item.expiresAt < Math.floor(Date.now() / 1000)) {
+            return res.status(400).json({ 
+                success: false,
+                message: 'Mã OTP đã hết hạn' 
+            });
+        }
+
+        // Hash mật khẩu mới
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Cập nhật mật khẩu mới
+        const updateParams = {
+            TableName: 'users',
+            Key: { phone },
+            UpdateExpression: 'set password = :password, updatedAt = :updatedAt',
+            ExpressionAttributeValues: {
+                ':password': hashedPassword,
+                ':updatedAt': new Date().toISOString()
+            }
+        };
+
+        await dynamoDB.update(updateParams).promise();
+
+        // Xóa OTP đã sử dụng
+        await dynamoDB.delete(otpParams).promise();
+
+        res.json({ 
+            success: true,
+            message: 'Mật khẩu đã được cập nhật thành công'
+        });
+    } catch (error) {
+        console.error('Error in verify OTP:', error);
+        res.status(500).json({ 
+            success: false,
+            message: 'Lỗi trong quá trình đặt lại mật khẩu' 
+        });
+    }
+});
+
+// Health check endpoint
+router.get('/health', (req, res) => {
+    res.json({ status: 'ok', message: 'Server is running' });
 });
 
 module.exports = router; 

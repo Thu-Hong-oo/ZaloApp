@@ -3,6 +3,7 @@ package com.zalo.auth.service;
 import java.text.DecimalFormat;
 import java.time.Duration;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
@@ -17,11 +18,16 @@ import com.zalo.auth.dto.PasswordResetRequestDto;
 import com.zalo.auth.dto.PasswordResetResponseDto;
 import com.zalo.auth.exception.InvalidOtpException;
 import com.zalo.auth.model.OtpData;
+import com.twilio.exception.TwilioException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import reactor.core.publisher.Mono;
 
 @Service
 public class TwilioOTPService {
+
+    private static final Logger log = LoggerFactory.getLogger(TwilioOTPService.class);
 
     @Autowired
     private TwilioConfig twilioConfig;
@@ -70,19 +76,8 @@ public class TwilioOTPService {
                     .set(otpKey, otpDataJson, OTP_EXPIRY)
                     .doOnSuccess(success -> {
                         System.out.println("Successfully saved OTP to Redis");
-                        try {
-                            // Gửi OTP qua Twilio
-                            System.out.println("Sending OTP via Twilio to: " + phoneNumber);
-                            Message.creator(
-                                    new PhoneNumber(phoneNumber),
-                                    new PhoneNumber(twilioConfig.getPhoneNumber()),
-                                    "Mã OTP của bạn là: " + otp + ". Mã này sẽ hết hạn sau 5 phút.")
-                                    .create();
-                            System.out.println("Successfully sent OTP via Twilio");
-                        } catch (Exception e) {
-                            System.out.println("Error sending OTP via Twilio: " + e.getMessage());
-                            e.printStackTrace();
-                        }
+                        // Log OTP instead of sending SMS
+                        System.out.println("OTP for " + phoneNumber + " is: " + otp);
                     })
                     .then(redisTemplate.opsForValue().set(rateLimitKey, "1", RATE_LIMIT_DURATION))
                     .thenReturn(new PasswordResetResponseDto(OTPStatus.DELIVERED, "Đã gửi mã OTP thành công"))
@@ -134,7 +129,7 @@ public class TwilioOTPService {
                             otpData.incrementAttempts();
                             String updatedOtpDataJson = objectMapper.writeValueAsString(otpData);
                             return redisTemplate.opsForValue().set(otpKey, updatedOtpDataJson, OTP_EXPIRY)
-                                    .then(Mono.error(new InvalidOtpException("Mã OTP không chính xác")));
+                                    .then(Mono.error(new InvalidOtpException("Mã OTP không hợp lệ")));
                         }
 
                         System.out.println("OTP is valid");
@@ -161,19 +156,55 @@ public class TwilioOTPService {
      * Định dạng số điện thoại cho Twilio
      */
     private String formatPhoneNumber(String phoneNumber) {
-        // Loại bỏ tất cả các ký tự không phải số
-        String cleanedNumber = phoneNumber.replaceAll("[^0-9]", "");
+        // Remove any non-digit characters
+        String digitsOnly = phoneNumber.replaceAll("\\D", "");
         
-        // Nếu số điện thoại bắt đầu bằng 0, thay thế bằng +84
-        if (cleanedNumber.startsWith("0")) {
-            cleanedNumber = "+84" + cleanedNumber.substring(1);
+        // If the number starts with 0, remove it
+        if (digitsOnly.startsWith("0")) {
+            digitsOnly = digitsOnly.substring(1);
         }
         
-        // Nếu số điện thoại chưa có mã quốc gia, thêm +84
-        if (!cleanedNumber.startsWith("+")) {
-            cleanedNumber = "+84" + cleanedNumber;
-        }
-        
-        return cleanedNumber;
+        // If the number already has the country code, return as is
+        return digitsOnly.startsWith("+") ? digitsOnly : "+84" + digitsOnly;
+    }
+
+    public Mono<String> sendOTPForPasswordReset(String phoneNumber) {
+        String rateLimitKey = "otp_ratelimit:" + phoneNumber;
+        return redisTemplate.opsForValue()
+            .setIfAbsent(rateLimitKey, "1", Duration.ofMinutes(1))
+            .flatMap(canSendOTP -> {
+                if (Boolean.FALSE.equals(canSendOTP)) {
+                    return redisTemplate.getExpire(rateLimitKey)
+                        .map(ttl -> "Please wait " + ttl.getSeconds() + " seconds before requesting another OTP")
+                        .flatMap(msg -> Mono.error(new RuntimeException(msg)));
+                }
+
+                String formattedNumber = formatPhoneNumber(phoneNumber);
+                if (formattedNumber.length() < 10 || formattedNumber.length() > 12) {
+                    return Mono.error(new RuntimeException("Invalid phone number format"));
+                }
+
+                String otp = generateOTP();
+                try {
+                    Message message = Message.creator(
+                            new PhoneNumber(formattedNumber),
+                            new PhoneNumber(twilioConfig.getPhoneNumber()),
+                            "Your ZaloApp OTP is: " + otp)
+                        .create();
+
+                    // Store OTP in Redis with 5 minutes expiration
+                    String otpKey = "otp:" + phoneNumber;
+                    return redisTemplate.opsForValue()
+                        .set(otpKey, otp, Duration.ofMinutes(5))
+                        .thenReturn("OTP sent successfully to " + phoneNumber);
+                } catch (TwilioException e) {
+                    log.error("Failed to send OTP via Twilio", e);
+                    return Mono.error(new RuntimeException("Failed to send OTP: " + e.getMessage()));
+                }
+            })
+            .onErrorMap(e -> {
+                log.error("Error in OTP service", e);
+                return new RuntimeException("Error processing OTP request: " + e.getMessage());
+            });
     }
 }

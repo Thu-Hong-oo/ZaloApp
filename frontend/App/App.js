@@ -1,8 +1,9 @@
-import React, { createContext, useState } from "react";
+import React, { createContext, useState, useEffect } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
+import { View, Text } from 'react-native';
 import COLORS from "./components/colors";
 import "@expo/metro-runtime";
 
@@ -19,7 +20,6 @@ import OTPScreen from "./screens/OTPScreen";
 import UserNameScreen from "./screens/UserNameScreen";
 import EnterProfileInforScreen from "./screens/EnterProfileInforScreen";
 import UpdateAvatarScreen from "./screens/UpdateAvatarScreen";
-import TestCorsScreen from "./screens/TestCorsScreen";
 import ProfileDetailScreen from "./screens/ProfileDetailScreen";
 // Create Auth Context
 export const AuthContext = createContext(null);
@@ -61,13 +61,7 @@ function AuthStack() {
           gestureEnabled: false
         }}
       />
-      <Stack.Screen 
-        name="TestCors" 
-        component={TestCorsScreen}
-        options={{
-          gestureEnabled: false
-        }}
-      />
+    
     </Stack.Navigator>
   );
 }
@@ -174,11 +168,55 @@ function BottomTabs() {
   );
 }
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Error caught by boundary:', error);
+    console.error('Error info:', errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text>Something went wrong!</Text>
+          <Text>{this.state.error?.toString()}</Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [refreshToken, setRefreshToken] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    console.log('App mounting...');
+    const initApp = async () => {
+      try {
+        // Add any initialization logic here
+        console.log('App initialized');
+      } catch (error) {
+        console.error('Error initializing app:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    initApp();
+  }, []);
 
   const authContext = {
     isLoggedIn,
@@ -191,15 +229,25 @@ export default function App() {
     setRefreshToken
   };
 
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
-    <AuthContext.Provider value={authContext}>
-      <NavigationContainer>
-        {!isLoggedIn ? (
-          <AuthStack />
-        ) : (
-          <BottomTabs />
-        )}
-      </NavigationContainer>
-    </AuthContext.Provider>
+    <ErrorBoundary>
+      <AuthContext.Provider value={authContext}>
+        <NavigationContainer>
+          {!isLoggedIn ? (
+            <AuthStack />
+          ) : (
+            <BottomTabs />
+          )}
+        </NavigationContainer>
+      </AuthContext.Provider>
+    </ErrorBoundary>
   );
 }

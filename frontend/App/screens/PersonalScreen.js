@@ -16,6 +16,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthContext } from '../App';
 import COLORS from '../components/colors';
 import {AuthService} from '../services/auth-service'
+import * as ImagePicker from 'expo-image-picker';
+
 const PersonalScreen = ({ navigation }) => {
   const { setIsLoggedIn } = useContext(AuthContext);
   const [userData, setUserData] = useState(null);
@@ -84,6 +86,68 @@ const PersonalScreen = ({ navigation }) => {
     }
   };
 
+  const handleAvatarUpload = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        // Cập nhật UI ngay lập tức với ảnh mới
+        const updatedUserData = {
+          ...userData,
+          avatar: result.assets[0].uri // Sử dụng URI của ảnh mới
+        };
+        setUserData(updatedUserData);
+
+        // Bắt đầu tải lên server
+        setLoading(true);
+        const formData = new FormData();
+        formData.append('avatar', {
+          uri: result.assets[0].uri,
+          type: 'image/jpeg',
+          name: 'avatar.jpg',
+        });
+
+        const response = await AuthService.uploadAvatar(formData);
+        
+        if (response.success) {
+          // Cập nhật avatar URL từ server vào AsyncStorage
+          const finalUserData = {
+            ...userData,
+            avatar: response.data.avatarUrl
+          };
+          await AsyncStorage.setItem('userData', JSON.stringify(finalUserData));
+          setUserData(finalUserData);
+          
+          Alert.alert('Thành công', 'Ảnh đại diện đã được cập nhật');
+        } else {
+          // Nếu tải lên thất bại, quay lại ảnh cũ
+          const originalUserData = {
+            ...userData,
+            avatar: userData?.avatar || `https://ui-avatars.com/api/?name=${userData?.fullName || 'U'}&background=random&color=fff&size=256`
+          };
+          setUserData(originalUserData);
+          Alert.alert('Lỗi', response.message || 'Không thể cập nhật ảnh đại diện');
+        }
+      }
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      // Nếu có lỗi, quay lại ảnh cũ
+      const originalUserData = {
+        ...userData,
+        avatar: userData?.avatar || `https://ui-avatars.com/api/?name=${userData?.fullName || 'U'}&background=random&color=fff&size=256`
+      };
+      setUserData(originalUserData);
+      Alert.alert('Lỗi', 'Không thể tải lên ảnh đại diện');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const renderMenuItem = (icon, title, onPress) => (
     <TouchableOpacity style={styles.menuItem} onPress={onPress}>
       <View style={styles.menuItemContent}>
@@ -109,9 +173,7 @@ const PersonalScreen = ({ navigation }) => {
           <Text style={styles.fullName}>{userData?.fullName || 'Loading...'}</Text>
           <Text style={styles.phoneNumber}>{userData?.phoneNumber || ''}</Text>
         </View>
-        <TouchableOpacity style={styles.editButton}>
-          <Ionicons name="pencil" size={20} color={COLORS.primary} />
-        </TouchableOpacity>
+        
       </View>
 
       {/* Menu Items */}

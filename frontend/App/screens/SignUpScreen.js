@@ -37,7 +37,7 @@ export default function PhoneInputScreen({ navigation }) {
     try {
       setIsLoading(true);
       console.log('Sending OTP for phone:', phoneNumber);
-      const response = await authService.sendRegistrationOTP(phoneNumber);
+      const response = await authService.sendOTP(phoneNumber);
       console.log('OTP sent successfully:', response);
 
       // Kiểm tra nếu số điện thoại đã được đăng ký
