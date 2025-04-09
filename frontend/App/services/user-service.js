@@ -80,7 +80,7 @@ const UserService = {
   async getProfile() {
     try {
       const token = await TokenService.getAccessToken();
-      const response = await api.get('/api/users/profile', {
+      const response = await api.get('/users/profile', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -100,21 +100,13 @@ const UserService = {
   async updateProfile(userData) {
     try {
       const token = await TokenService.getAccessToken();
-      let avatarUrl = userData.avatar;
+      
+      // Chỉ gửi trường name
+      const updateData = {
+        name: userData.name
+      };
 
-      // Nếu avatar là File, upload trước
-      if (userData.avatar instanceof File) {
-        const formData = new FormData();
-        formData.append('file', userData.avatar);
-        const uploadResponse = await this.uploadAvatar(formData);
-        avatarUrl = uploadResponse.url;
-      }
-
-      // Cập nhật profile với avatar URL
-      const response = await this.api.put('/auth/users/profile', {
-        ...userData,
-        avatar: avatarUrl
-      }, {
+      const response = await api.put('/users/profile', updateData, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -138,7 +130,7 @@ const UserService = {
   async uploadAvatar(formData) {
     try {
       const token = await TokenService.getAccessToken();
-      const response = await this.api.post('/auth/users/avatar', formData, {
+      const response = await api.post('/users/avatar', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${token}`

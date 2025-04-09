@@ -31,6 +31,13 @@ const LoginScreen = ({ navigation }) => {
       return;
     }
 
+    // Validate phone number format (Vietnamese phone number)
+    const phoneRegex = /^0[0-9]{9}$/;
+    if (!phoneRegex.test(phoneNumber)) {
+      Alert.alert('Lỗi', 'Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại 10 chữ số bắt đầu bằng số 0');
+      return;
+    }
+
     if (!password) {
       Alert.alert('Lỗi', 'Vui lòng nhập mật khẩu');
       return;
@@ -45,10 +52,66 @@ const LoginScreen = ({ navigation }) => {
       const response = await AuthService.login(credentials);
       console.log('Login successful:', response);
       setIsLoggedIn(true);
-      navigation.replace('HomeTab');
+
     } catch (error) {
       console.error('Login error:', error);
-      Alert.alert('Lỗi', error.response?.data?.error || 'Đăng nhập thất bại');
+      let errorMessage = 'Đăng nhập thất bại';
+      
+      // Xử lý các trường hợp lỗi cụ thể
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      // Kiểm tra nếu số điện thoại chưa được đăng ký
+      if (errorMessage.includes('chưa được đăng ký') || errorMessage.includes('không tồn tại')) {
+        Alert.alert(
+          'Thông báo',
+          'Số điện thoại này chưa được đăng ký. Vui lòng đăng ký tài khoản mới.',
+          [
+            {
+              text: 'Đăng ký',
+              onPress: () => navigation.navigate('SignUp')
+            },
+            {
+              text: 'Đổi số khác',
+              onPress: () => setPhoneNumber('')
+            }
+          ]
+        );
+      } else if (errorMessage.includes('Sai mật khẩu')) {
+        Alert.alert(
+          'Lỗi',
+          'Mật khẩu không đúng. Vui lòng thử lại.',
+          [
+            {
+              text: 'Thử lại',
+              onPress: () => setPassword('')
+            },
+            {
+              text: 'Quên mật khẩu',
+              onPress: () => setShowForgotPasswordModal(true)
+            }
+          ]
+        );
+      } else {
+        Alert.alert(
+          'Lỗi',
+          errorMessage,
+          [
+            {
+              text: 'Thử lại',
+              onPress: () => {
+                setPhoneNumber('');
+                setPassword('');
+              }
+            }
+          ]
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -104,8 +167,16 @@ const LoginScreen = ({ navigation }) => {
             style={styles.input}
             placeholder="Số điện thoại"
             value={phoneNumber}
-            onChangeText={setPhoneNumber}
+            onChangeText={(text) => {
+              // Chỉ cho phép nhập số
+              const numericValue = text.replace(/[^0-9]/g, '');
+              // Giới hạn độ dài tối đa 10 chữ số
+              if (numericValue.length <= 10) {
+                setPhoneNumber(numericValue);
+              }
+            }}
             keyboardType="phone-pad"
+            maxLength={10}
           />
           {phoneNumber.length > 0 && (
             <TouchableOpacity 

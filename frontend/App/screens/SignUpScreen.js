@@ -26,6 +26,14 @@ export default function PhoneInputScreen({ navigation }) {
       Alert.alert('Lỗi', 'Vui lòng nhập số điện thoại');
       return;
     }
+
+    // Validate phone number format (Vietnamese phone number)
+    const phoneRegex = /[0-9]{9}$/;
+    if (!phoneRegex.test(phoneNumber)) {
+      Alert.alert('Lỗi', 'Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại 9 chữ số không tính số 0');
+      return;
+    }
+
     if (!termsAgreed || !socialTermsAgreed) {
       Alert.alert('Lỗi', 'Vui lòng đồng ý với điều khoản sử dụng');
       return;
@@ -36,33 +44,48 @@ export default function PhoneInputScreen({ navigation }) {
   const handleSendOTP = async () => {
     try {
       setIsLoading(true);
-      console.log('Sending OTP for phone:', phoneNumber);
-      const response = await authService.sendOTP(phoneNumber);
+      // Remove +84 prefix before sending to server
+      const phoneNumberWithoutPrefix = phoneNumber.replace('+84', '');
+      console.log('Sending OTP for phone:', phoneNumberWithoutPrefix);
+      const response = await authService.sendOTP(phoneNumberWithoutPrefix);
       console.log('OTP sent successfully:', response);
-
-      // Kiểm tra nếu số điện thoại đã được đăng ký
-      if (response?.message?.includes('đã được đăng ký') || response?.error?.includes('đã tồn tại')) {
-        setShowVerificationModal(false);
-        Alert.alert(
-          'Thông báo',
-          'Số điện thoại này đã được đăng ký. Vui lòng đăng nhập.',
-          [
-            {
-              text: 'Đăng nhập',
-              onPress: () => navigation.navigate('Login')
-            }
-          ]
-        );
-        return;
-      }
 
       // Nếu chưa đăng ký, tiếp tục luồng đăng ký bình thường
       setShowVerificationModal(false);
       navigation.navigate('VerificationCode', { phoneNumber });
     } catch (error) {
       console.error('Error sending OTP:', error);
-      if (error.response?.data?.message?.includes('đã tồn tại') || 
-          error.response?.data?.error?.includes('đã được đăng ký')) {
+      let errorMessage = 'Có lỗi xảy ra khi gửi OTP';
+      
+      // Xử lý các trường hợp lỗi cụ thể
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      // Kiểm tra nếu số điện thoại không tồn tại
+      if (errorMessage.includes('chưa được đăng ký') || errorMessage.includes('không tồn tại')) {
+        Alert.alert(
+          'Thông báo',
+          'Số điện thoại này chưa được đăng ký. Vui lòng đăng ký tài khoản mới.',
+          [
+            {
+              text: 'Đăng ký',
+              onPress: () => {
+                setShowVerificationModal(false);
+                navigation.navigate('SignUp');
+              }
+            },
+            {
+              text: 'Đổi số khác',
+              onPress: () => setShowVerificationModal(false)
+            }
+          ]
+        );
+      } else if (errorMessage.includes('đã được đăng ký') || errorMessage.includes('đã tồn tại')) {
         Alert.alert(
           'Thông báo',
           'Số điện thoại này đã được đăng ký. Vui lòng đăng nhập.',
@@ -70,11 +93,24 @@ export default function PhoneInputScreen({ navigation }) {
             {
               text: 'Đăng nhập',
               onPress: () => navigation.navigate('Login')
+            },
+            {
+              text: 'Đổi số khác',
+              onPress: () => setShowVerificationModal(false)
             }
           ]
         );
       } else {
-        Alert.alert('Lỗi', error.message || 'Có lỗi xảy ra khi gửi OTP');
+        Alert.alert(
+          'Lỗi',
+          errorMessage,
+          [
+            {
+              text: 'Thử lại',
+              onPress: () => setShowVerificationModal(false)
+            }
+          ]
+        );
       }
     } finally {
       setIsLoading(false);
@@ -105,16 +141,23 @@ export default function PhoneInputScreen({ navigation }) {
         
         {/* Phone input */}
         <View style={styles.phoneInputContainer}>
-          <TouchableOpacity style={styles.countryCode}>
+          <View style={styles.countryCode}>
             <Text style={styles.countryCodeText}>+84</Text>
-            <Ionicons name="chevron-down" size={16} color="#666" />
-          </TouchableOpacity>
+          </View>
           <TextInput
             style={styles.phoneInput}
             placeholder=""
             keyboardType="phone-pad"
             value={phoneNumber}
-            onChangeText={setPhoneNumber}
+            onChangeText={(text) => {
+              // Chỉ cho phép nhập số
+              const numericValue = text.replace(/[^0-9]/g, '');
+              // Giới hạn độ dài tối đa 10 chữ số
+              if (numericValue.length <= 10) {
+                setPhoneNumber(numericValue);
+              }
+            }}
+            maxLength={10}
           />
           {phoneNumber ? (
             <TouchableOpacity 

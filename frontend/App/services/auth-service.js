@@ -78,7 +78,7 @@ class AuthService {
   async login(credentials) {
     try {
       console.log('Login request:', credentials);
-      const response = await this.api.post('/login', credentials);
+      const response = await this.api.post('/auth/login', credentials);
       console.log('Login response:', response.data);
       
       if (response.data.success) {
@@ -114,7 +114,7 @@ class AuthService {
       delete transformedData.phoneNumber;
 
       console.log('Sending register request with:', transformedData);
-      const response = await this.api.post('/register', transformedData);
+      const response = await this.api.post('/auth/register', transformedData);
       if (response.data.success) {
         // Lưu tokens nếu server trả về
         if (response.data.data.accessToken && response.data.data.refreshToken) {
@@ -140,7 +140,7 @@ class AuthService {
       const refreshToken = await TokenService.getRefreshToken();
       if (refreshToken) {
         // Gọi API đăng xuất nếu cần
-        await this.api.post('/logout', { refreshToken });
+        await this.api.post('/auth/logout', { refreshToken });
       }
       // Xóa tokens
       await TokenService.removeTokens();
@@ -165,7 +165,7 @@ class AuthService {
       }
 
       console.log('Sending refresh token request to:', `${API_URL_AUTH}/refresh-token`);
-      const response = await this.api.post('/refresh-token', { refreshToken });
+      const response = await this.api.post('/auth/refresh-token', { refreshToken });
       
       if (response.data.success && response.data.data.accessToken) {
         console.log('Successfully refreshed token');
@@ -203,7 +203,7 @@ class AuthService {
       }
 
       console.log('Validating token at:', `${API_URL_AUTH}/validate-token`);
-      const response = await this.api.post('/validate-token', null, {
+      const response = await this.api.post('/auth/validate-token', null, {
         headers: { Authorization: `Bearer ${token}` }
       });
 

@@ -26,7 +26,7 @@ const ProfileDetailScreen = ({ navigation }) => {
 
   // Form state
   const [editedData, setEditedData] = useState({
-    fullName: '',
+    name: '',
     dateOfBirth: new Date(),
     gender: '',
     avatar: ''
@@ -49,7 +49,7 @@ const ProfileDetailScreen = ({ navigation }) => {
         const parsedData = JSON.parse(data);
         setUserData(parsedData);
         setEditedData({
-          fullName: parsedData.fullName || '',
+          name: parsedData.name || '',
           dateOfBirth: parsedData.dateOfBirth ? new Date(parsedData.dateOfBirth) : new Date(),
           gender: parsedData.gender || '',
           avatar: parsedData.avatar || ''
@@ -95,21 +95,12 @@ const ProfileDetailScreen = ({ navigation }) => {
       });
   
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        // Lấy uri và các thông tin khác từ asset
         const asset = result.assets[0];
         const fileName = asset.uri.split('/').pop();
         const fileType = asset.uri.endsWith('.png') ? 'image/png' : (
                           asset.uri.endsWith('.gif') ? 'image/gif' : (
                           asset.uri.endsWith('.webp') ? 'image/webp' : 'image/jpeg'));
         
-        // Log để debug
-        console.log('Selected image:', {
-          uri: asset.uri,
-          type: fileType,
-          name: fileName
-        });
-        
-        // Lưu trữ thông tin ảnh
         setEditedData(prev => ({
           ...prev,
           avatar: {
@@ -137,18 +128,16 @@ const ProfileDetailScreen = ({ navigation }) => {
         return;
       }
 
+      // Chỉ gửi trường name
       const response = await UserService.updateProfile({
-        ...editedData,
-        dateOfBirth: editedData.dateOfBirth.toISOString(),
-        phoneNumber: userData.phoneNumber // Thêm phoneNumber từ userData hiện tại
+        name: editedData.name
       });
 
       if (response.success) {
         // Cập nhật AsyncStorage
         const updatedUserData = {
           ...userData,
-          ...editedData,
-          dateOfBirth: editedData.dateOfBirth.toISOString()
+          name: editedData.name
         };
         await AsyncStorage.setItem('userData', JSON.stringify(updatedUserData));
         setUserData(updatedUserData);
@@ -257,14 +246,13 @@ const ProfileDetailScreen = ({ navigation }) => {
             </View>
           </View>
 
-          <View style={styles.modalButtonContainer}>
+          <View style={styles.modalButtons}>
             <TouchableOpacity
               style={[styles.modalButton, styles.cancelButton]}
               onPress={() => setShowDateModal(false)}
             >
               <Text style={styles.modalButtonText}>Hủy</Text>
             </TouchableOpacity>
-            
             <TouchableOpacity
               style={[styles.modalButton, styles.confirmButton]}
               onPress={handleDateChange}
@@ -277,322 +265,311 @@ const ProfileDetailScreen = ({ navigation }) => {
     </Modal>
   );
 
+  if (!userData) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      {/* Header */}
+    <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => {
-            if (isEditing) {
-              Alert.alert(
-                'Xác nhận',
-                'Bạn có muốn hủy các thay đổi?',
-                [
-                  {
-                    text: 'Tiếp tục chỉnh sửa',
-                    style: 'cancel'
-                  },
-                  {
-                    text: 'Hủy thay đổi',
-                    onPress: () => {
-                      setIsEditing(false);
-                      loadUserData();
-                    }
-                  }
-                ]
-              );
-            } else {
-              navigation.goBack();
-            }
-          }}
-        >
-          <Ionicons name="arrow-back" size={24} color="white" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Thông tin cá nhân</Text>
         <TouchableOpacity
-          style={styles.editButton}
-          onPress={() => {
-            if (isEditing) {
-              handleSave();
-            } else {
-              setIsEditing(true);
-            }
-          }}
-          disabled={loading}
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
         >
-          {loading ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text style={styles.editButtonText}>
-              {isEditing ? 'Lưu' : 'Sửa'}
-            </Text>
-          )}
+          <Ionicons name="arrow-back" size={24} color={COLORS.black} />
         </TouchableOpacity>
+        <Text style={styles.title}>Thông tin cá nhân</Text>
+        {isEditing ? (
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={handleSave}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color={COLORS.white} />
+            ) : (
+              <Text style={styles.saveButtonText}>Lưu</Text>
+            )}
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={() => setIsEditing(true)}
+          >
+            <Text style={styles.editButtonText}>Chỉnh sửa</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      <ScrollView style={styles.content}>
-        {/* Avatar */}
-        <View style={styles.avatarContainer}>
-          <Image
-            source={{ 
-              uri: typeof editedData.avatar === 'object' && editedData.avatar.uri ? 
-                   editedData.avatar.uri : 
-                   (editedData.avatar || `https://ui-avatars.com/api/?name=${editedData.fullName || 'U'}&background=random&color=fff&size=256`) 
-            }}
-            style={styles.avatar}
-          />
-          {isEditing && (
-            <TouchableOpacity
-              style={styles.changeAvatarButton}
-              onPress={handlePickImage}
-            >
-              <Ionicons name="camera" size={20} color="white" />
-            </TouchableOpacity>
+      <View style={styles.content}>
+        <TouchableOpacity
+          style={styles.avatarContainer}
+          onPress={isEditing ? handlePickImage : null}
+        >
+          {editedData.avatar?.uri ? (
+            <Image
+              source={{ uri: editedData.avatar.uri }}
+              style={styles.avatar}
+            />
+          ) : (
+            <View style={[styles.avatar, styles.defaultAvatar]}>
+              <Ionicons name="person" size={50} color={COLORS.gray} />
+            </View>
           )}
-        </View>
+          {isEditing && (
+            <View style={styles.avatarEditOverlay}>
+              <Ionicons name="camera" size={24} color={COLORS.white} />
+            </View>
+          )}
+        </TouchableOpacity>
 
-        {/* Form */}
         <View style={styles.form}>
-          {/* Full Name */}
-          <View style={styles.formGroup}>
+          <View style={styles.inputGroup}>
             <Text style={styles.label}>Họ và tên</Text>
-            {isEditing ? (
-              <TextInput
-                style={styles.input}
-                value={editedData.fullName}
-                onChangeText={(text) => setEditedData(prev => ({ ...prev, fullName: text }))}
-                placeholder="Nhập họ và tên"
-              />
-            ) : (
-              <Text style={styles.value}>{userData?.fullName || 'Chưa cập nhật'}</Text>
-            )}
+            <TextInput
+              style={styles.input}
+              value={editedData.name}
+              onChangeText={(text) => setEditedData(prev => ({ ...prev, name: text }))}
+              editable={isEditing}
+              placeholder="Nhập họ và tên"
+            />
           </View>
 
-          {/* Date of Birth */}
-          <View style={styles.formGroup}>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Số điện thoại</Text>
+            <TextInput
+              style={[styles.input, styles.disabledInput]}
+              value={userData.phone}
+              editable={false}
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
             <Text style={styles.label}>Ngày sinh</Text>
-            {isEditing ? (
-              <TouchableOpacity
-                style={styles.datePickerButton}
-                onPress={() => setShowDateModal(true)}
-              >
-                <Text style={styles.datePickerText}>
-                  {formatDate(editedData.dateOfBirth)}
-                </Text>
-                <Ionicons name="calendar" size={20} color={COLORS.primary} />
-              </TouchableOpacity>
-            ) : (
-              <Text style={styles.value}>
-                {userData?.dateOfBirth ? formatDate(new Date(userData.dateOfBirth)) : 'Chưa cập nhật'}
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() => isEditing && setShowDateModal(true)}
+            >
+              <Text style={styles.dateText}>
+                {formatDate(editedData.dateOfBirth)}
               </Text>
-            )}
+            </TouchableOpacity>
           </View>
 
-          {/* Gender */}
-          <View style={styles.formGroup}>
+          <View style={styles.inputGroup}>
             <Text style={styles.label}>Giới tính</Text>
-            {isEditing ? (
-              <TouchableOpacity
-                style={styles.genderButton}
-                onPress={() => setShowGenderModal(true)}
-              >
-                <Text style={styles.genderButtonText}>
-                  {editedData.gender || 'Chọn giới tính'}
-                </Text>
-                <Ionicons name="chevron-down" size={20} color={COLORS.primary} />
-              </TouchableOpacity>
-            ) : (
-              <Text style={styles.value}>{userData?.gender || 'Chưa cập nhật'}</Text>
-            )}
+            <TouchableOpacity
+              style={styles.genderButton}
+              onPress={() => isEditing && setShowGenderModal(true)}
+            >
+              <Text style={styles.genderText}>
+                {editedData.gender || 'Chọn giới tính'}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
-      </ScrollView>
+      </View>
 
-      {renderDateModal()}
       {renderGenderModal()}
-    </View>
+      {renderDateModal()}
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: COLORS.white,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 15,
-    paddingTop: 10,
-    paddingBottom: 15,
-    backgroundColor: COLORS.primary,
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.lightGray,
   },
   backButton: {
-    padding: 5,
+    padding: 8,
   },
-  headerTitle: {
-    color: 'white',
-    fontSize: 20,
+  title: {
+    fontSize: 18,
     fontWeight: 'bold',
+    color: COLORS.black,
   },
   editButton: {
-    padding: 5,
+    padding: 8,
   },
   editButtonText: {
-    color: 'white',
+    color: COLORS.primary,
+    fontSize: 16,
+  },
+  saveButton: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 4,
+  },
+  saveButtonText: {
+    color: COLORS.white,
     fontSize: 16,
   },
   content: {
-    flex: 1,
+    padding: 16,
   },
   avatarContainer: {
     alignItems: 'center',
-    marginVertical: 20,
-    position: 'relative',
+    marginBottom: 24,
   },
   avatar: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#ddd',
   },
-  changeAvatarButton: {
+  avatarEditOverlay: {
     position: 'absolute',
-    right: '35%',
     bottom: 0,
+    right: 0,
     backgroundColor: COLORS.primary,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'white',
   },
   form: {
-    backgroundColor: 'white',
-    paddingHorizontal: 15,
+    gap: 16,
   },
-  formGroup: {
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+  inputGroup: {
+    gap: 8,
   },
   label: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 5,
-  },
-  value: {
     fontSize: 16,
-    color: '#333',
+    color: COLORS.black,
   },
   input: {
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
+    borderRadius: 8,
+    padding: 12,
     fontSize: 16,
-    color: '#333',
-    padding: 0,
   },
-  datePickerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  disabledInput: {
+    backgroundColor: COLORS.lightGray,
   },
-  datePickerText: {
+  dateButton: {
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
+    borderRadius: 8,
+    padding: 12,
+  },
+  dateText: {
     fontSize: 16,
-    color: '#333',
   },
   genderButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: COLORS.lightGray,
+    borderRadius: 8,
+    padding: 12,
   },
-  genderButtonText: {
+  genderText: {
     fontSize: 16,
-    color: '#333',
   },
   modalContainer: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
+    backgroundColor: COLORS.white,
+    borderRadius: 8,
+    padding: 16,
+    width: '80%',
   },
   modalTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 15,
+    marginBottom: 16,
     textAlign: 'center',
   },
   modalOption: {
-    paddingVertical: 15,
+    padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: COLORS.lightGray,
   },
   modalOptionText: {
     fontSize: 16,
-    textAlign: 'center',
   },
   selectedOption: {
     color: COLORS.primary,
     fontWeight: 'bold',
   },
   modalCancelButton: {
-    marginTop: 15,
-    paddingVertical: 15,
+    padding: 12,
+    marginTop: 8,
   },
   modalCancelText: {
+    color: COLORS.gray,
     fontSize: 16,
-    color: 'red',
     textAlign: 'center',
   },
   dateInputContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   dateInput: {
     flex: 1,
-    marginHorizontal: 10,
+    marginHorizontal: 4,
   },
   dateLabel: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 5,
+    color: COLORS.gray,
+    marginBottom: 4,
   },
   dateTextInput: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 5,
-    padding: 10,
+    borderColor: COLORS.lightGray,
+    borderRadius: 4,
+    padding: 8,
     fontSize: 16,
   },
-  modalButtonContainer: {
+  modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 20,
+    marginTop: 16,
   },
   modalButton: {
     flex: 1,
-    padding: 10,
-    borderRadius: 5,
-    marginHorizontal: 10,
+    padding: 12,
+    borderRadius: 4,
+    marginHorizontal: 8,
   },
   cancelButton: {
-    backgroundColor: '#ddd',
+    backgroundColor: COLORS.lightGray,
   },
   confirmButton: {
     backgroundColor: COLORS.primary,
   },
   modalButtonText: {
-    color: 'white',
-    textAlign: 'center',
+    color: COLORS.white,
     fontSize: 16,
+    textAlign: 'center',
+  },
+  defaultAvatar: {
+    backgroundColor: COLORS.lightGray,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
