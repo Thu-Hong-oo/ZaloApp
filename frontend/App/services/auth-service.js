@@ -72,24 +72,26 @@ class AuthService {
    * @param {string} password - Mật khẩu đăng nhập
    * @returns {Promise} - Kết quả đăng nhập
    */
-  async login(phoneNumber, password) {
+  async login(credentials) {
     try {
-      console.log('Sending login request with:', { phone: phoneNumber, password });
-      const response = await this.api.post('/login', {
-        phone: phoneNumber,
-        password: password
-      });
+      console.log('Login request:', credentials);
+      const response = await this.api.post('/login', credentials);
+      console.log('Login response:', response.data);
+      
       if (response.data.success) {
         // Lưu tokens
-        await TokenService.setTokens(
-          response.data.data.accessToken,
-          response.data.data.refreshToken
+        await TokenService.saveTokens(
+          response.data.accessToken,
+          response.data.refreshToken
         );
+        
+        return response.data;
+      } else {
+        throw new Error(response.data.error || 'Đăng nhập thất bại');
       }
-      return response.data;
     } catch (error) {
-      console.error('Login error:', error.response?.data || error);
-      throw error.response?.data || error;
+      console.error('Login error:', error);
+      throw error;
     }
   }
 

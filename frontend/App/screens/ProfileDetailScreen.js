@@ -14,7 +14,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import UserService from '../services/user-service';
 import TokenService from '../services/token-service';
 import COLORS from '../components/colors';
@@ -23,7 +22,6 @@ const ProfileDetailScreen = ({ navigation }) => {
   const [userData, setUserData] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showDatePicker, setShowDatePicker] = useState(false);
   const [showGenderModal, setShowGenderModal] = useState(false);
 
   // Form state
@@ -33,6 +31,12 @@ const ProfileDetailScreen = ({ navigation }) => {
     gender: '',
     avatar: ''
   });
+
+  // Date picker state
+  const [day, setDay] = useState('1');
+  const [month, setMonth] = useState('1');
+  const [year, setYear] = useState('2000');
+  const [showDateModal, setShowDateModal] = useState(false);
 
   useEffect(() => {
     loadUserData();
@@ -50,10 +54,27 @@ const ProfileDetailScreen = ({ navigation }) => {
           gender: parsedData.gender || '',
           avatar: parsedData.avatar || ''
         });
+        
+        // Set initial date values
+        if (parsedData.dateOfBirth) {
+          const date = new Date(parsedData.dateOfBirth);
+          setDay(date.getDate().toString());
+          setMonth((date.getMonth() + 1).toString());
+          setYear(date.getFullYear().toString());
+        }
       }
     } catch (error) {
       console.error('Error loading user data:', error);
     }
+  };
+
+  const handleDateChange = () => {
+    const newDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    setEditedData(prev => ({
+      ...prev,
+      dateOfBirth: newDate
+    }));
+    setShowDateModal(false);
   };
 
   const handlePickImage = async () => {
@@ -64,18 +85,38 @@ const ProfileDetailScreen = ({ navigation }) => {
         Alert.alert('Lỗi', 'Cần cấp quyền truy cập thư viện ảnh để chọn ảnh');
         return;
       }
-
+  
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 1,
+        quality: 0.5,
+        base64: false
       });
-
-      if (!result.canceled) {
+  
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        // Lấy uri và các thông tin khác từ asset
+        const asset = result.assets[0];
+        const fileName = asset.uri.split('/').pop();
+        const fileType = asset.uri.endsWith('.png') ? 'image/png' : (
+                          asset.uri.endsWith('.gif') ? 'image/gif' : (
+                          asset.uri.endsWith('.webp') ? 'image/webp' : 'image/jpeg'));
+        
+        // Log để debug
+        console.log('Selected image:', {
+          uri: asset.uri,
+          type: fileType,
+          name: fileName
+        });
+        
+        // Lưu trữ thông tin ảnh
         setEditedData(prev => ({
           ...prev,
-          avatar: result.assets[0].uri
+          avatar: {
+            uri: asset.uri,
+            type: fileType,
+            name: fileName
+          }
         }));
       }
     } catch (error) {
@@ -98,7 +139,8 @@ const ProfileDetailScreen = ({ navigation }) => {
 
       const response = await UserService.updateProfile({
         ...editedData,
-        dateOfBirth: editedData.dateOfBirth.toISOString()
+        dateOfBirth: editedData.dateOfBirth.toISOString(),
+        phoneNumber: userData.phoneNumber // Thêm phoneNumber từ userData hiện tại
       });
 
       if (response.success) {
@@ -112,6 +154,7 @@ const ProfileDetailScreen = ({ navigation }) => {
         setUserData(updatedUserData);
         setIsEditing(false);
         Alert.alert('Thành công', 'Cập nhật thông tin thành công');
+        navigation.goBack();
       } else {
         Alert.alert('Lỗi', response.message || 'Cập nhật thất bại');
       }
@@ -160,6 +203,75 @@ const ProfileDetailScreen = ({ navigation }) => {
           >
             <Text style={styles.modalCancelText}>Hủy</Text>
           </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const renderDateModal = () => (
+    <Modal
+      visible={showDateModal}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setShowDateModal(false)}
+    >
+      <View style={styles.modalContainer}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Chọn ngày sinh</Text>
+          
+          <View style={styles.dateInputContainer}>
+            <View style={styles.dateInput}>
+              <Text style={styles.dateLabel}>Ngày</Text>
+              <TextInput
+                style={styles.dateTextInput}
+                value={day}
+                onChangeText={setDay}
+                keyboardType="numeric"
+                maxLength={2}
+                placeholder="DD"
+              />
+            </View>
+            
+            <View style={styles.dateInput}>
+              <Text style={styles.dateLabel}>Tháng</Text>
+              <TextInput
+                style={styles.dateTextInput}
+                value={month}
+                onChangeText={setMonth}
+                keyboardType="numeric"
+                maxLength={2}
+                placeholder="MM"
+              />
+            </View>
+            
+            <View style={styles.dateInput}>
+              <Text style={styles.dateLabel}>Năm</Text>
+              <TextInput
+                style={styles.dateTextInput}
+                value={year}
+                onChangeText={setYear}
+                keyboardType="numeric"
+                maxLength={4}
+                placeholder="YYYY"
+              />
+            </View>
+          </View>
+
+          <View style={styles.modalButtonContainer}>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.cancelButton]}
+              onPress={() => setShowDateModal(false)}
+            >
+              <Text style={styles.modalButtonText}>Hủy</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.modalButton, styles.confirmButton]}
+              onPress={handleDateChange}
+            >
+              <Text style={styles.modalButtonText}>Xác nhận</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </Modal>
@@ -224,8 +336,9 @@ const ProfileDetailScreen = ({ navigation }) => {
         <View style={styles.avatarContainer}>
           <Image
             source={{ 
-              uri: editedData.avatar || 
-              `https://ui-avatars.com/api/?name=${editedData.fullName || 'U'}&background=random&color=fff&size=256` 
+              uri: typeof editedData.avatar === 'object' && editedData.avatar.uri ? 
+                   editedData.avatar.uri : 
+                   (editedData.avatar || `https://ui-avatars.com/api/?name=${editedData.fullName || 'U'}&background=random&color=fff&size=256`) 
             }}
             style={styles.avatar}
           />
@@ -262,7 +375,7 @@ const ProfileDetailScreen = ({ navigation }) => {
             {isEditing ? (
               <TouchableOpacity
                 style={styles.datePickerButton}
-                onPress={() => setShowDatePicker(true)}
+                onPress={() => setShowDateModal(true)}
               >
                 <Text style={styles.datePickerText}>
                   {formatDate(editedData.dateOfBirth)}
@@ -296,22 +409,7 @@ const ProfileDetailScreen = ({ navigation }) => {
         </View>
       </ScrollView>
 
-      {/* Date Picker */}
-      {showDatePicker && (
-        <DateTimePicker
-          value={editedData.dateOfBirth}
-          mode="date"
-          display="default"
-          onChange={(event, selectedDate) => {
-            setShowDatePicker(false);
-            if (selectedDate) {
-              setEditedData(prev => ({ ...prev, dateOfBirth: selectedDate }));
-            }
-          }}
-        />
-      )}
-
-      {/* Gender Modal */}
+      {renderDateModal()}
       {renderGenderModal()}
     </View>
   );
@@ -452,6 +550,49 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'red',
     textAlign: 'center',
+  },
+  dateInputContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  dateInput: {
+    flex: 1,
+    marginHorizontal: 10,
+  },
+  dateLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 5,
+  },
+  dateTextInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 5,
+    padding: 10,
+    fontSize: 16,
+  },
+  modalButtonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  modalButton: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 5,
+    marginHorizontal: 10,
+  },
+  cancelButton: {
+    backgroundColor: '#ddd',
+  },
+  confirmButton: {
+    backgroundColor: COLORS.primary,
+  },
+  modalButtonText: {
+    color: 'white',
+    textAlign: 'center',
+    fontSize: 16,
   },
 });
 

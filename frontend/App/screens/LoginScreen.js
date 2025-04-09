@@ -35,29 +35,17 @@ const LoginScreen = ({ navigation }) => {
 
     try {
       setLoading(true);
-
-      const response = await AuthService.login(phoneNumber, password);
-      console.log('Login response:', response);
-
-      if (response.success) {
-        console.log('Login successful, saving user data...');
-        // Lưu thông tin user
-        await AsyncStorage.setItem('userData', JSON.stringify(response.data.user));
-        
-        console.log('Setting logged in state to true...');
-        // Cập nhật trạng thái đăng nhập và tự động chuyển sang BottomTabs
-        setIsLoggedIn(true);
-        
-    
-      } else {
-        Alert.alert('Lỗi', response.message || 'Đăng nhập thất bại');
-      }
+      const credentials = {
+        phone: phoneNumber,
+        password: password
+      };
+      const response = await AuthService.login(credentials);
+      console.log('Login successful:', response);
+      setIsLoggedIn(true);
+      navigation.replace('HomeTab');
     } catch (error) {
       console.error('Login error:', error);
-      Alert.alert(
-        'Lỗi',
-        error.message || 'Có lỗi xảy ra khi đăng nhập'
-      );
+      Alert.alert('Lỗi', error.response?.data?.error || 'Đăng nhập thất bại');
     } finally {
       setLoading(false);
     }
