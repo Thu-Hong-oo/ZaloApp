@@ -1,142 +1,290 @@
 import axios from 'axios';
+import { API_URL } from '../config';
+import TokenService from './token-service';
 
-const API_URL = 'http://192.168.1.163:8080/api/auth';
+/**
+ * Cấu hình API Gateway
+ * - Sử dụng localhost cho Expo Web
+ * - Sử dụng 10.0.2.2 cho Android emulator
+ * - Sử dụng localhost cho iOS simulator
+ * - Sử dụng IP thật cho thiết bị thật
+ */
+const API_URL_AUTH = `${API_URL}/api/auth`;
 
-const authService = {
-  // Gửi OTP đăng ký
-  sendRegistrationOTP: async (phoneNumber) => {
-    try {
-      console.log('Sending registration OTP request:', {
-        url: `${API_URL}/register/send-otp`,
-        data: { phoneNumber }
-      });
-      const response = await axios.post(`${API_URL}/register/send-otp`, {
-        phoneNumber: phoneNumber
-      });
-      console.log('Registration OTP response:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('Error in sendRegistrationOTP:', error.response || error);
-      throw error.response?.data || { message: 'Có lỗi xảy ra khi gửi OTP đăng ký' };
-    }
-  },
-
- // Xác thực OTP đăng ký
-verifyRegistrationOTP: async (phoneNumber, otp) => {
-  try {
-    console.log('Verifying registration OTP request:', {
-      url: `${API_URL}/register/verify-otp`,
-      data: { phoneNumber, otp }
-    });
-    const response = await axios.post(`${API_URL}/register/verify-otp`, {
-      phoneNumber: phoneNumber,
-      otp: otp
-    });
-
-    // Giả sử backend trả về cấu trúc ApiResponse
-    console.log('Verify OTP response:', response.data);
-
-    // Chuyển đổi thành ApiResponse nếu chưa trả về đúng định dạng
-    return {
-      success: response.data.success,
-      message: response.data.message || 'Có lỗi xảy ra khi xác thực OTP',
-      data: response.data.data
-    };
-  } catch (error) {
-    console.error('Error in verifyRegistrationOTP:', error.response || error);
-    throw error.response?.data || { message: 'Có lỗi xảy ra khi xác thực OTP' };
+/**
+ * Cấu hình axios với timeout và headers mặc định
+ */
+const axiosInstance = axios.create({
+  baseURL: API_URL_AUTH,
+  timeout: 30000, // Tăng timeout lên 30 giây
+  headers: {
+    'Content-Type': 'application/json',
   }
-  },
+});
 
-  // Hoàn tất đăng ký
-  completeRegistration: async (userData) => {
-    try {
-      const response = await axios.post(`${API_URL}/register/complete`, userData);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Có lỗi xảy ra khi hoàn tất đăng ký' };
-    }
+// Thêm interceptor để log request
+axiosInstance.interceptors.request.use(
+  config => {
+    console.log('Request:', {
+      url: config.url,
+      method: config.method,
+      data: config.data,
+      headers: config.headers
+    });
+    return config;
   },
+  error => {
+    console.error('Request Error:', error);
+    return Promise.reject(error);
+  }
+);
 
-  // Đăng nhập
-  login: async (phoneNumber, password) => {
-    try {
-      const response = await axios.post(`${API_URL}/login`, {
-        phoneNumber: phoneNumber,
-        password: password
-      });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Có lỗi xảy ra khi đăng nhập' };
-    }
+// Thêm interceptor để log response
+axiosInstance.interceptors.response.use(
+  response => {
+    console.log('Response:', {
+      status: response.status,
+      data: response.data
+    });
+    return response;
   },
+  error => {
+    console.error('Response Error:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    });
+    return Promise.reject(error);
+  }
+);
 
-  // Đăng nhập bằng số điện thoại và OTP
-  loginWithPhone: async (phoneNumber, otp) => {
-    try {
-      const response = await axios.post(`${API_URL}/login/phone`, {
-        phoneNumber: phoneNumber,
-        otp: otp
-      });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Có lỗi xảy ra khi đăng nhập bằng OTP' };
-    }
-  },
+/**
+ * Service xử lý các API liên quan đến xác thực
+ */
+class AuthService {
+  constructor() {
+    this.api = axiosInstance;
+  }
 
-  // Gửi OTP đặt lại mật khẩu
-  sendPasswordResetOTP: async (phoneNumber) => {
+  /**
+   * Đăng nhập
+   * @param {string} phoneNumber - Số điện thoại đăng nhập
+   * @param {string} password - Mật khẩu đăng nhập
+   * @returns {Promise} - Kết quả đăng nhập
+   */
+  async login(credentials) {
     try {
-      const response = await axios.post(`${API_URL}/send-otp`, {
-        phoneNumber: phoneNumber
-      });
-      return response.data;
+      console.log('Login request:', credentials);
+      const response = await this.api.post('/login', credentials);
+      console.log('Login response:', response.data);
+      
+      if (response.data.success) {
+        // Lưu tokens
+        await TokenService.saveTokens(
+          response.data.accessToken,
+          response.data.refreshToken
+        );
+        
+        return response.data;
+      } else {
+        throw new Error(response.data.error || 'Đăng nhập thất bại');
+      }
     } catch (error) {
-      throw error.response?.data || { message: 'Có lỗi xảy ra khi gửi OTP đặt lại mật khẩu' };
-    }
-  },
-
-  // Đăng xuất
-  logout: async (token) => {
-    try {
-      const response = await axios.post(`${API_URL}/logout`, null, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Có lỗi xảy ra khi đăng xuất' };
-    }
-  },
-
-  // Làm mới token
-  refreshToken: async (refreshToken) => {
-    try {
-      const response = await axios.post(`${API_URL}/refresh-token`, {
-        refreshToken: refreshToken
-      });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Có lỗi xảy ra khi làm mới token' };
-    }
-  },
-
-  // Cập nhật trạng thái người dùng
-  updateUserStatus: async (token, status) => {
-    try {
-      const response = await axios.put(`${API_URL}/users/status`, {
-        status: status
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { message: 'Có lỗi xảy ra khi cập nhật trạng thái' };
+      console.error('Login error:', error);
+      throw error;
     }
   }
-};
 
-export default authService; 
+  /**
+   * Đăng ký
+   * @param {Object} userData - Thông tin người dùng cần đăng ký
+   * @returns {Promise} - Kết quả đăng ký
+   */
+  async register(userData) {
+    try {
+      // Transform phoneNumber to phone if it exists
+      const transformedData = {
+        ...userData,
+        phone: userData.phoneNumber,
+      };
+      // Remove phoneNumber to avoid confusion
+      delete transformedData.phoneNumber;
+
+      console.log('Sending register request with:', transformedData);
+      const response = await this.api.post('/register', transformedData);
+      if (response.data.success) {
+        // Lưu tokens nếu server trả về
+        if (response.data.data.accessToken && response.data.data.refreshToken) {
+          await TokenService.setTokens(
+            response.data.data.accessToken,
+            response.data.data.refreshToken
+          );
+        }
+      }
+      return response.data;
+    } catch (error) {
+      console.error('Register error:', error.response?.data || error);
+      throw error.response?.data || error;
+    }
+  }
+
+  /**
+   * Đăng xuất
+   * @returns {Promise} - Kết quả đăng xuất
+   */
+  async logout() {
+    try {
+      const refreshToken = await TokenService.getRefreshToken();
+      if (refreshToken) {
+        // Gọi API đăng xuất nếu cần
+        await this.api.post('/logout', { refreshToken });
+      }
+      // Xóa tokens
+      await TokenService.removeTokens();
+      return { success: true };
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Vẫn xóa tokens ngay cả khi API thất bại
+      await TokenService.removeTokens();
+      throw error;
+    }
+  }
+
+  /**
+   * Làm mới token
+   * @returns {Promise} - Kết quả làm mới token
+   */
+  async refreshToken() {
+    try {
+      const refreshToken = await TokenService.getRefreshToken();
+      if (!refreshToken) {
+        throw new Error('No refresh token available');
+      }
+
+      console.log('Sending refresh token request to:', `${API_URL_AUTH}/refresh-token`);
+      const response = await this.api.post('/refresh-token', { refreshToken });
+      
+      if (response.data.success && response.data.data.accessToken) {
+        console.log('Successfully refreshed token');
+        await TokenService.setTokens(
+          response.data.data.accessToken,
+          response.data.data.refreshToken || refreshToken // Use old refresh token if new one not provided
+        );
+        return response.data;
+      }
+      
+      console.error('Invalid refresh token response:', response.data);
+      throw new Error('Failed to refresh token - invalid response format');
+    } catch (error) {
+      console.error('Refresh token error:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      // Remove tokens if refresh fails
+      await TokenService.removeTokens();
+      throw error;
+    }
+  }
+
+  /**
+   * Validate current token
+   * @returns {Promise<boolean>} - Whether token is valid
+   */
+  async validateToken() {
+    try {
+      const token = await TokenService.getAccessToken();
+      if (!token) {
+        console.log('No token available for validation');
+        return false;
+      }
+
+      console.log('Validating token at:', `${API_URL_AUTH}/validate-token`);
+      const response = await this.api.post('/validate-token', null, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      return response.data.success === true;
+    } catch (error) {
+      console.error('Token validation error:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Gửi OTP
+   * @param {string} phoneNumber - Số điện thoại cần gửi OTP
+   * @returns {Promise} - Kết quả gửi OTP
+   */
+  async sendOTP(phoneNumber) {
+    try {
+      const response = await this.api.post('/send-otp', { phoneNumber });
+      return response.data;
+    } catch (error) {
+      console.error('Send OTP error:', error.response?.data || error);
+      throw error.response?.data || error;
+    }
+  }
+
+  /**
+   * Xác thực OTP
+   * @param {string} phoneNumber - Số điện thoại đã gửi OTP
+   * @param {string} otp - Mã OTP cần xác thực
+   * @returns {Promise} - Kết quả xác thực OTP
+   */
+  async verifyOTP(phoneNumber, otp) {
+    try {
+      const response = await this.api.post('/verify-otp', { phoneNumber, otp });
+      return response.data;
+    } catch (error) {
+      console.error('Verify OTP error:', error.response?.data || error);
+      throw error.response?.data || error;
+    }
+  }
+
+  /**
+   * Quên mật khẩu
+   * @param {string} phoneNumber - Số điện thoại cần đặt lại mật khẩu
+   * @returns {Promise} - Kết quả đặt lại mật khẩu
+   */
+  async forgotPassword(phoneNumber) {
+    try {
+      const response = await this.api.post('/forgot-password', { phoneNumber });
+      return response.data;
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      
+      // Handle specific error cases
+      if (error.response?.status === 401) {
+        throw new Error('Số điện thoại không tồn tại trong hệ thống');
+      } else if (error.response?.status === 404) {
+        throw new Error('Không tìm thấy tài khoản với số điện thoại này');
+      } else if (error.response?.status === 429) {
+        throw new Error('Bạn đã yêu cầu quá nhiều lần. Vui lòng thử lại sau');
+      } else {
+        throw new Error('Không thể lấy lại mật khẩu. Vui lòng thử lại sau');
+      }
+    }
+  }
+
+  /**
+   * Reset mật khẩu
+   * @param {Object} resetData - Thông tin đặt lại mật khẩu
+   * @returns {Promise} - Kết quả đặt lại mật khẩu
+   */
+  async resetPassword(resetData) {
+    try {
+      const response = await this.api.post('/reset-password', resetData);
+      return response.data;
+    } catch (error) {
+      console.error('Reset password error:', error.response?.data || error);
+      throw error.response?.data || error;
+    }
+  }
+}
+
+export default new AuthService(); 

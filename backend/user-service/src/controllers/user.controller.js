@@ -245,9 +245,14 @@ console.log('Environment variables:', {
     async getUserByPhone(req, res) {
         try {
             const { phone } = req.params;
+            console.log('Received request to get user by phone:', phone);
+            console.log('Request headers:', req.headers);
+            
             const user = await userService.getUserByPhone(phone);
+            console.log('User service response:', user ? {...user, password: '[HIDDEN]'} : null);
 
             if (!user) {
+                console.log('User not found, returning 404');
                 return res.status(404).json({
                     success: false,
                     message: 'Người dùng không tồn tại',
@@ -257,6 +262,7 @@ console.log('Environment variables:', {
 
             // Kiểm tra xem request có phải từ auth-service không
             const isAuthService = req.headers['x-service'] === 'auth-service';
+            console.log('Is auth service request:', isAuthService);
 
             // Nếu là auth-service, trả về cả password, ngược lại loại bỏ password
             const responseData = isAuthService ? user : {
@@ -264,8 +270,7 @@ console.log('Environment variables:', {
                 password: undefined
             };
 
-            // Log response data for debugging (hide password)
-            console.log('Response data:', JSON.stringify({...responseData, password: responseData.password ? '[HIDDEN]' : undefined}));
+            console.log('Sending response:', {...responseData, password: responseData.password ? '[HIDDEN]' : undefined});
 
             return res.json({
                 success: true,

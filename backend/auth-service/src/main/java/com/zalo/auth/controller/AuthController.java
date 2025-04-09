@@ -18,27 +18,30 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping({"/auth","/api/auth","/"}) // Base path for auth endpoints
 public class AuthController {
 
-    @Value("${user.service.name}")
+    @Value("${user.service.name}")  // Lấy tên service user từ config
     private String userServiceName;
 
     @Autowired
-    private WebClient.Builder webClientBuilder;
+    private WebClient.Builder webClientBuilder;// Client để gọi các service khác
 
     @Autowired
-    private ZaloAuthService authService;
+    private ZaloAuthService authService;// Service xử lý authentication
 
     @Autowired
-    private TwilioOTPService twilioOTPService;
+    private TwilioOTPService twilioOTPService;// Service gửi OTP qua SMS
 
     @Autowired
-    private JwtConfig jwtConfig;
+    private JwtConfig jwtConfig; // Cấu hình JWT
 
     @Autowired
-    private JwtTokenProvider jwtTokenProvider;
+    private JwtTokenProvider jwtTokenProvider;// Xử lý JWT tokens
 
+      // API Endpoints:
+
+    // 1. Lấy JWT secret
     @GetMapping("/jwt-secret")
     public Mono<ResponseEntity<JwtSecretResponse>> getJwtSecret() {
         JwtSecretResponse response = new JwtSecretResponse();
@@ -46,6 +49,7 @@ public class AuthController {
         return Mono.just(ResponseEntity.ok(response));
     }
 
+    // 2. Validate JWT token
     @GetMapping("/validate-token")
     public Mono<ResponseEntity<ApiResponse>> validateToken(@RequestHeader("Authorization") String authHeader) {
         try {
@@ -71,12 +75,14 @@ public class AuthController {
         }
     }
 
+    // 3. Gửi OTP đăng ký
     @PostMapping("/register/send-otp")
     public Mono<ResponseEntity<String>> sendRegistrationOtp(@Valid @RequestBody RegisterSendOtpRequest request) {
         return authService.sendRegistrationOtp(request)
                 .map(response -> ResponseEntity.ok(response));
     }
 
+    // 4. Xác thực OTP đăng ký
     @PostMapping("/register/verify-otp")
     public Mono<ResponseEntity<ApiResponse>> verifyRegistrationOtp(@Valid @RequestBody RegisterVerifyOtpRequest request) {
         return authService.verifyRegistrationOtp(request)
@@ -90,13 +96,14 @@ public class AuthController {
                 });
     }
     
-
+    // 5. Hoàn tất đăng ký
     @PostMapping("/register/complete")
     public Mono<ResponseEntity<AuthResponse>> completeRegistration(@Valid @RequestBody RegisterRequest request) {
         return authService.completeRegistration(request)
                 .map(response -> ResponseEntity.status(HttpStatus.CREATED).body(response));
     }
 
+    // 6. Đăng nhập
     @PostMapping("/login")
     public Mono<ResponseEntity<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request)
@@ -105,18 +112,21 @@ public class AuthController {
                         .body(AuthResponse.error(e.getMessage()))));
     }
 
+    // 7. Đăng nhập bằng số điện thoại
     @PostMapping("/login/phone")
     public Mono<ResponseEntity<AuthResponse>> loginWithPhone(@Valid @RequestBody PhoneLoginRequest phoneLoginRequest) {
         return authService.loginWithPhone(phoneLoginRequest)
                 .map(response -> ResponseEntity.ok(response));
     }
 
+    // 8. Gửi OTP đặt lại mật khẩu
     @PostMapping("/send-otp")
     public Mono<ResponseEntity<PasswordResetResponseDto>> sendOTP(@Valid @RequestBody PasswordResetRequestDto passwordResetRequestDto) {
         return twilioOTPService.sendOTPPasswordReset(passwordResetRequestDto)
                 .map(response -> ResponseEntity.ok(response));
     }
 
+    // 9. Đăng xuất
     @PostMapping("/logout")
     public Mono<ResponseEntity<ApiResponse>> logout(@RequestHeader("Authorization") String authHeader) {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
@@ -128,6 +138,7 @@ public class AuthController {
         return Mono.just(ResponseEntity.ok(new ApiResponse(true, "Đăng xuất thành công", null)));
     }
 
+    // 10. Làm mới token
     @PostMapping("/refresh-token")
     public Mono<ResponseEntity<AuthResponse>> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
         return authService.refreshToken(request)
@@ -136,6 +147,7 @@ public class AuthController {
                         .body(AuthResponse.error(e.getMessage()))));
     }
 
+    // 11. Cập nhật trạng thái người dùng
     @PutMapping("/users/status")
     public Mono<ResponseEntity<ApiResponse>> updateStatus(
             @RequestHeader("Authorization") String authHeader,
@@ -158,4 +170,5 @@ public class AuthController {
             .onErrorResume(e -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ApiResponse(false, "Lỗi khi cập nhật trạng thái: " + e.getMessage(), null))));
     }
+    
 }

@@ -62,21 +62,25 @@ const userService = {
 
     async getUserByPhone(phone) {
         console.log('Getting user by phone:', phone);
+        console.log('Using table:', TABLE_NAME);
         
         const params = {
             TableName: TABLE_NAME,
             Key: { phone }
         };
 
+        console.log('DynamoDB params:', JSON.stringify(params, null, 2));
+
         try {
             const result = await dynamoDB.get(params).promise();
-            console.log('DynamoDB result:', JSON.stringify({...result, Item: result.Item ? {...result.Item, password: '[HIDDEN]'} : null}));
+            console.log('Raw DynamoDB result:', JSON.stringify(result, null, 2));
             
             if (!result.Item) {
-                console.log('User not found');
+                console.log('User not found in DynamoDB');
                 return null;
             }
 
+            console.log('Found user:', JSON.stringify({...result.Item, password: '[HIDDEN]'}, null, 2));
             return result.Item;
         } catch (error) {
             console.error('Error getting user by phone:', error);

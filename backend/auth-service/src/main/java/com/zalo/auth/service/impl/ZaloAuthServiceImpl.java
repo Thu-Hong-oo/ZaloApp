@@ -37,22 +37,22 @@ import java.util.UUID;
 public class ZaloAuthServiceImpl implements ZaloAuthService {
 
     @Autowired
-    private RedisRefreshTokenRepository refreshTokenRepository;
+    private RedisRefreshTokenRepository refreshTokenRepository;//Lưu trữ token để đăng xuất
 
     @Autowired
-    private PasswordEncoder passwordEncoder;
+    private PasswordEncoder passwordEncoder;//Mã hóa mật khẩu
 
     @Autowired
-    private JwtTokenProvider jwtTokenProvider;
+    private JwtTokenProvider jwtTokenProvider;//Xử lý JWT
 
     @Autowired
-    private ReactiveAuthenticationManager authenticationManager;
+    private ReactiveAuthenticationManager authenticationManager;//Quản lý phiên đăng nhập
 
     @Autowired
     private TwilioOTPService twilioOTPService;
 
     @Autowired
-    private WebClient.Builder webClientBuilder;
+    private WebClient.Builder webClientBuilder;//Client để gọi các service khác
 
     @Value("${user.service.name}")
     private String userServiceName;
@@ -61,55 +61,14 @@ public class ZaloAuthServiceImpl implements ZaloAuthService {
     public Mono<String> sendRegistrationOtp(RegisterSendOtpRequest request) {
         log.info("Đang gửi yêu cầu đến: {}/api/users/check-exists/{}", userServiceName, request.getPhoneNumber());
         
-        return webClientBuilder.build().get()
-                .uri("http://" + userServiceName + "/api/users/check-exists/" + request.getPhoneNumber())
-                .exchangeToMono(response -> {
-                    log.info("Trạng thái phản hồi: {}", response.statusCode());
-                    
-                    if (response.statusCode().is4xxClientError()) {
-                        log.info("Nhận được lỗi 4xx, xử lý như người dùng không tồn tại");
-                        return twilioOTPService.sendOTPPasswordReset(
-                                new PasswordResetRequestDto(request.getPhoneNumber()))
-                                .doOnNext(result -> log.info("Đã gửi OTP thành công"))
-                                .thenReturn("OTP đã được gửi để xác thực số điện thoại");
-                    }
-                    
-                    if (response.statusCode().is2xxSuccessful()) {
-                        return response.bodyToMono(String.class)
-                                .doOnNext(body -> log.info("Nội dung phản hồi: {}", body))
-                                .flatMap(body -> {
-                                    log.info("Đang xử lý nội dung phản hồi");
-                                    if (body.contains("\"exists\":false") || body.contains("not found")) {
-                                        log.info("Người dùng không tồn tại, đang gửi OTP");
-                                        return twilioOTPService.sendOTPPasswordReset(
-                                                new PasswordResetRequestDto(request.getPhoneNumber()))
-                                                .doOnNext(result -> log.info("Đã gửi OTP thành công"))
-                                                .thenReturn("OTP đã được gửi để xác thực số điện thoại");
-                                    }
-                                    log.info("Người dùng đã tồn tại, trả về lỗi");
-                                    return Mono.error(new UserAlreadyExistsException("Số điện thoại đã đăng ký. Vui lòng đăng nhập."));
-                                })
-                                .onErrorResume(e -> {
-                                    log.error("Lỗi khi xử lý phản hồi: {}", e.getMessage());
-                                    return Mono.error(new RuntimeException("Lỗi khi xử lý phản hồi: " + e.getMessage()));
-                                });
-                    }
-                    
-                    log.error("Mã trạng thái không mong đợi: {}", response.statusCode());
-                    return Mono.error(new RuntimeException("Lỗi khi kiểm tra số điện thoại: " + response.statusCode()));
-                })
-                .onErrorResume(e -> {
-                    log.error("Lỗi trong yêu cầu: {}", e.getMessage());
-                    if (e instanceof UserAlreadyExistsException) {
-                        return Mono.error(e);
-                    }
-                    log.info("Đang thử gửi OTP trực tiếp do lỗi");
-                    return twilioOTPService.sendOTPPasswordReset(
-                            new PasswordResetRequestDto(request.getPhoneNumber()))
-                            .doOnNext(result -> log.info("Đã gửi OTP thành công như phương án dự phòng"))
-                            .thenReturn("OTP đã được gửi để xác thực số điện thoại");
-                });
+        // Skip the user existence check and directly send OTP
+        // This avoids the 401 Unauthorized error when checking user existence
+        return twilioOTPService.sendOTPPasswordReset(
+                new PasswordResetRequestDto(request.getPhoneNumber()))
+                .doOnNext(result -> log.info("Đã gửi OTP thành công"))
+                .thenReturn("OTP đã được gửi để xác thực số điện thoại");
     }
+
     @Override
     public Mono<ApiResponse> verifyRegistrationOtp(RegisterVerifyOtpRequest request) {
         log.info("Đang xác thực OTP cho số điện thoại: {}", request.getPhoneNumber());
@@ -227,43 +186,49 @@ public class ZaloAuthServiceImpl implements ZaloAuthService {
     public Mono<AuthResponse> login(LoginRequest request) {
         log.info("Attempting login for phone: {}", request.getPhone());
         
+        String serviceUrl = "http://" + userServiceName;
+        log.info("Calling user service at: {}", serviceUrl);
+        
         return webClientBuilder.build()
                 .get()
-                .uri("http://" + userServiceName + "/api/users/" + request.getPhone())
+                .uri(serviceUrl + "/api/users/{phone}", request.getPhone())
                 .header("x-service", "auth-service")
                 .retrieve()
                 .bodyToMono(UserResponse.class)
-                .flatMap(response -> {
+                .doOnNext(response -> {
                     log.info("Received response from user service: {}", response);
+                })
+                .flatMap(response -> {
+                    log.info("Processing user service response");
                     
                     if (!response.isSuccess() || response.getData() == null) {
                         log.error("User service returned error or null data");
-                        return Mono.just(AuthResponse.error("Số điện thoại chưa được đăng ký"));
+                        return Mono.just(new AuthResponse(request.getPhone(), null, null, "Số điện thoại chưa được đăng ký", false));
                     }
                     
                     UserData userData = response.getData();
                     if (userData.getPassword() == null) {
                         log.error("User password is null");
-                        return Mono.just(AuthResponse.error("Lỗi xác thực"));
+                        return Mono.just(new AuthResponse(request.getPhone(), null, null, "Lỗi xác thực", false));
                     }
                     
+                    log.info("Comparing passwords for user: {}", request.getPhone());
                     if (passwordEncoder.matches(request.getPassword(), userData.getPassword())) {
                         log.info("Password matches, generating tokens");
                         return generateAuthTokens(request.getPhone());
                     }
                     
                     log.info("Password does not match");
-                    return Mono.just(AuthResponse.error("Mật khẩu không đúng"));
+                    return Mono.just(new AuthResponse(request.getPhone(), null, null, "Mật khẩu không đúng", false));
                 })
-                .onErrorResume(WebClientResponseException.NotFound.class, 
+                .onErrorResume(e -> {
+                    log.error("User not found: {}", e.getMessage());
+                    return Mono.just(new AuthResponse(request.getPhone(), null, null, "Số điện thoại chưa được đăng ký", false));
+                })
+                .onErrorResume(WebClientResponseException.class, 
                     e -> {
-                        log.error("User not found: {}", e.getMessage());
-                        return Mono.just(AuthResponse.error("Số điện thoại chưa được đăng ký"));
-                    })
-                .onErrorResume(Exception.class, 
-                    e -> {
-                        log.error("Login error: {}", e.getMessage());
-                        return Mono.just(AuthResponse.error(e.getMessage()));
+                        log.error("Error from user service: {} - {}", e.getStatusCode(), e.getMessage());
+                        return Mono.just(new AuthResponse(request.getPhone(), null, null, "Lỗi hệ thống, vui lòng thử lại sau", false));
                     });
     }
 

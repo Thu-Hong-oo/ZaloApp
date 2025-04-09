@@ -13,20 +13,30 @@ import reactor.core.publisher.Mono;
 
 import java.util.Collections;
 
+/**
+ * Service để tải thông tin người dùng từ user-service
+ * Sử dụng trong quá trình xác thực
+ */
 @Service
 public class CustomReactiveUserDetailsService implements ReactiveUserDetailsService {
 
     @Autowired
     private WebClient.Builder webClientBuilder;
 
-    @Value("${user.service.url:http://localhost:3000}")
-    private String userServiceUrl;
+    @Value("${user.service.name:user-service}")
+    private String userServiceName;
 
+    /**
+     * Tìm người dùng theo số điện thoại
+     * 
+     * @param phoneNumber Số điện thoại cần tìm
+     * @return Mono<UserDetails> Thông tin người dùng
+     */
     @Override
     public Mono<UserDetails> findByUsername(String phoneNumber) {
         return webClientBuilder.build()
                 .get()
-                .uri(userServiceUrl + "/api/users/" + phoneNumber)
+                .uri("http://" + userServiceName + "/api/users/phone/{phone}", phoneNumber)
                 .retrieve()
                 .bodyToMono(UserResponse.class)
                 .map(response -> new User(

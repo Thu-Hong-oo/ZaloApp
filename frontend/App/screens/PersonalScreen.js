@@ -1,271 +1,304 @@
-import React from "react";
+import React, { useState, useEffect, useContext } from 'react';
 import {
   View,
   Text,
-  ScrollView,
-  Image,
-  TextInput,
-  TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+  Image,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  Modal,
+  TextInput,
+  ActivityIndicator
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AuthContext } from '../App';
+import COLORS from '../components/colors';
+import {AuthService} from '../services/auth-service'
+const PersonalScreen = ({ navigation }) => {
+  const { setIsLoggedIn } = useContext(AuthContext);
+  const [userData, setUserData] = useState(null);
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-export default function ProfileScreen() {
-  const menuItems = [
-    {
-      id: 1,
-      icon: "brush",
-      title: "zStyle – Nổi bật trên Zalo",
-      subtitle: "Hình nền và nhạc cho cuộc gọi Zalo",
-      color: "#1877f2",
-    },
-    {
-      id: 2,
-      icon: "qr-code",
-      title: "Ví QR",
-      subtitle: "Lưu trữ và xuất trình các mã QR quan trọng",
-      color: "#1877f2",
-    },
-    {
-      id: 3,
-      icon: "cloud",
-      title: "Cloud của tôi",
-      subtitle: "Lưu trữ các tin nhắn quan trọng",
-      color: "#1877f2",
-      showArrow: true,
-    },
-    {
-      id: 4,
-      icon: "cloud-upload",
-      title: "zCloud",
-      subtitle: "Không gian lưu trữ dữ liệu trên đám mây",
-      color: "#1877f2",
-      showArrow: true,
-    },
-    {
-      id: 5,
-      icon: "time",
-      title: "Dữ liệu trên máy",
-      subtitle: "Quản lý dữ liệu Zalo của bạn",
-      color: "#1877f2",
-      showArrow: true,
-    },
-    {
-      id: 6,
-      icon: "shield-checkmark",
-      title: "Tài khoản và bảo mật",
-      color: "#1877f2",
-      showArrow: true,
-    },
-    {
-      id: 7,
-      icon: "lock-closed",
-      title: "Quyền riêng tư",
-      color: "#1877f2",
-      showArrow: true,
-    },
-  ];
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      const data = await AsyncStorage.getItem('userData');
+      if (data) {
+        setUserData(JSON.parse(data));
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    }
+  };
+
+  const handleLogout = async () => {
+    Alert.alert(
+      'Đăng xuất',
+      'Bạn có chắc chắn muốn đăng xuất?',
+      [
+        {
+          text: 'Hủy',
+          style: 'cancel'
+        },
+        {
+          text: 'Đăng xuất',
+          onPress: async () => {
+            try {
+              await AsyncStorage.clear();
+              setIsLoggedIn(false);
+            } catch (error) {
+              console.error('Error during logout:', error);
+            }
+          },
+          style: 'destructive'
+        }
+      ]
+    );
+  };
+
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword) {
+      Alert.alert('Lỗi', 'Vui lòng nhập đầy đủ thông tin');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      // Call your password change API here
+       await AuthService.changePassword(currentPassword, newPassword);
+      Alert.alert('Thành công', 'Mật khẩu đã được thay đổi');
+      setShowChangePasswordModal(false);
+    } catch (error) {
+      console.error('Change password error:', error);
+      Alert.alert('Lỗi', 'Không thể đổi mật khẩu');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderMenuItem = (icon, title, onPress) => (
+    <TouchableOpacity style={styles.menuItem} onPress={onPress}>
+      <View style={styles.menuItemContent}>
+        <Ionicons name={icon} size={24} color={COLORS.primary} />
+        <Text style={styles.menuItemText}>{title}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={24} color="#666" />
+    </TouchableOpacity>
+  );
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#fff" />
-          <TextInput
-            placeholder="Tìm kiếm"
-            placeholderTextColor="#fff"
-            style={styles.searchInput}
-          />
+    <ScrollView style={styles.container}>
+      {/* Header Profile */}
+      <View style={styles.profileHeader}>
+        <Image
+          source={{ 
+            uri: userData?.avatar || 
+            `https://ui-avatars.com/api/?name=${userData?.fullName || 'U'}&background=random&color=fff&size=256` 
+          }}
+          style={styles.avatar}
+        />
+        <View style={styles.profileInfo}>
+          <Text style={styles.fullName}>{userData?.fullName || 'Loading...'}</Text>
+          <Text style={styles.phoneNumber}>{userData?.phoneNumber || ''}</Text>
         </View>
-        <TouchableOpacity>
-          <Ionicons name="settings" size={24} color="#fff" />
+        <TouchableOpacity style={styles.editButton}>
+          <Ionicons name="pencil" size={20} color={COLORS.primary} />
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.content}>
-        {/* Profile Section */}
-        <TouchableOpacity style={styles.profileSection}>
-          <View style={styles.profileInfo}>
-            <Image
-              source={{
-                uri: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-NyiV3wMhXaD2iykmXUcYyu4sJT0paU.png",
-              }}
-              style={styles.avatar}
+      {/* Menu Items */}
+      <View style={styles.menuSection}>
+        <Text style={styles.menuSectionTitle}>Tài khoản</Text>
+        {renderMenuItem('person-outline', 'Thông tin cá nhân', () => navigation.navigate('ProfileDetail'))}
+        {renderMenuItem('key-outline', 'Đổi mật khẩu', () => setShowChangePasswordModal(true))}
+        {renderMenuItem('shield-outline', 'Bảo mật và quyền riêng tư', () => {})}
+      </View>
+
+      <View style={styles.menuSection}>
+        <Text style={styles.menuSectionTitle}>Cài đặt</Text>
+        {renderMenuItem('notifications-outline', 'Thông báo', () => {})}
+        {renderMenuItem('moon-outline', 'Giao diện', () => {})}
+        {renderMenuItem('language-outline', 'Ngôn ngữ', () => {})}
+      </View>
+
+      <View style={styles.menuSection}>
+        <Text style={styles.menuSectionTitle}>Khác</Text>
+        {renderMenuItem('help-circle-outline', 'Trợ giúp & phản hồi', () => {})}
+        {renderMenuItem('information-circle-outline', 'Về ứng dụng', () => {})}
+        {renderMenuItem('log-out-outline', 'Đăng xuất', handleLogout)}
+      </View>
+
+      {/* Change Password Modal */}
+      <Modal
+        visible={showChangePasswordModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowChangePasswordModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Đổi mật khẩu</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Mật khẩu hiện tại"
+              value={currentPassword}
+              onChangeText={setCurrentPassword}
+              secureTextEntry
             />
-            <View style={styles.profileText}>
-              <Text style={styles.profileName}>Thu Hồng Nguyên</Text>
-              <Text style={styles.profileSubtext}>Xem trang cá nhân</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Mật khẩu mới"
+              value={newPassword}
+              onChangeText={setNewPassword}
+              secureTextEntry
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setShowChangePasswordModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>Hủy</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.submitButton]}
+                onPress={handleChangePassword}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={styles.submitButtonText}>Xác nhận</Text>
+                )}
+              </TouchableOpacity>
             </View>
           </View>
-          <Ionicons name="sync" size={24} color="#1877f2" />
-        </TouchableOpacity>
-
-        {/* Menu Items */}
-        {menuItems.map((item, index) => (
-          <TouchableOpacity
-            key={item.id}
-            style={[
-              styles.menuItem,
-              index === 1 && styles.menuItemBorder,
-              index === 2 && styles.menuItemBorder,
-              index === 4 && styles.menuItemBorder,
-            ]}
-          >
-            <View style={styles.menuItemLeft}>
-              <View
-                style={[
-                  styles.iconContainer,
-                  { backgroundColor: `${item.color}15` },
-                ]}
-              >
-                <Ionicons name={item.icon} size={20} color={item.color} />
-              </View>
-              <View style={styles.menuItemText}>
-                <Text style={styles.menuItemTitle}>{item.title}</Text>
-                {item.subtitle && (
-                  <Text style={styles.menuItemSubtitle}>{item.subtitle}</Text>
-                )}
-              </View>
-            </View>
-            {item.showArrow && (
-              <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
-            )}
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-    </SafeAreaView>
+        </View>
+      </Modal>
+    </ScrollView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f0f2f5",
+    backgroundColor: '#f5f5f5',
   },
-  header: {
-    backgroundColor: "#1877f2",
-    padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  searchContainer: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    marginRight: 16,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 8,
-    color: "#fff",
-    fontSize: 16,
-  },
-  content: {
-    flex: 1,
-  },
-  profileSection: {
-    backgroundColor: "#fff",
-    padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  profileInfo: {
-    flexDirection: "row",
-    alignItems: "center",
+  profileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#fff',
+    marginBottom: 10,
   },
   avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginRight: 12,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginRight: 15,
   },
-  profileText: {
-    justifyContent: "center",
+  profileInfo: {
+    flex: 1,
   },
-  profileName: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 4,
+  fullName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 5,
   },
-  profileSubtext: {
+  phoneNumber: {
     fontSize: 14,
-    color: "#666",
+    color: '#666',
+  },
+  editButton: {
+    padding: 8,
+  },
+  menuSection: {
+    backgroundColor: '#fff',
+    marginBottom: 10,
+    paddingVertical: 10,
+  },
+  menuSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
   },
   menuItem: {
-    backgroundColor: "#fff",
-    padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
   },
-  menuItemBorder: {
-    borderTopWidth: 8,
-    borderTopColor: "#f0f2f5",
-  },
-  menuItemLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
+  menuItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   menuItemText: {
-    flex: 1,
-  },
-  menuItemTitle: {
     fontSize: 16,
-    marginBottom: 2,
+    marginLeft: 15,
   },
-  menuItemSubtitle: {
-    fontSize: 14,
-    color: "#666",
-  },
-  bottomNav: {
-    flexDirection: "row",
-    borderTopWidth: 1,
-    borderTopColor: "#e0e0e0",
-    backgroundColor: "#fff",
-    paddingVertical: 8,
-  },
-  navItem: {
+  modalOverlay: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  activeNavItem: {
-    color: "#1877f2",
-  },
-  activeNavText: {
-    color: "#1877f2",
-    fontSize: 12,
-    marginTop: 4,
-  },
-  badge: {
-    position: "absolute",
-    top: -2,
-    right: 20,
-    backgroundColor: "#ff3b30",
+  modalContent: {
+    backgroundColor: 'white',
     borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    alignItems: "center",
-    justifyContent: "center",
+    padding: 20,
+    width: '80%',
+    elevation: 5,
   },
-  badgeText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "500",
-    paddingHorizontal: 6,
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  input: {
+    fontSize: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+    marginBottom: 15,
+    paddingVertical: 10,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  modalButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 5,
+    marginHorizontal: 5,
+  },
+  cancelButton: {
+    backgroundColor: '#E0E0E0',
+  },
+  cancelButtonText: {
+    color: '#666',
+    textAlign: 'center',
+    fontSize: 16,
+  },
+  submitButton: {
+    backgroundColor: '#1877f2',
+  },
+  submitButtonText: {
+    color: 'white',
+    textAlign: 'center',
+    fontSize: 16,
   },
 });
+
+export default PersonalScreen;

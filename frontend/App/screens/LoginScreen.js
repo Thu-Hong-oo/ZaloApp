@@ -5,77 +5,86 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  Alert,
+  ActivityIndicator,
   SafeAreaView,
   StatusBar,
-  Alert,
-  ActivityIndicator
+  Modal
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import {useNavigation} from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthContext } from '../App';
-import authService from '../services/auth-service';
+import AuthService from '../services/auth-service';
+import TokenService from '../services/token-service';
 
-const LoginScreen = () => {
+const LoginScreen = ({ navigation }) => {
+  const { setIsLoggedIn } = useContext(AuthContext);
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [otp, setOtp] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [showOTPInput, setShowOTPInput] = useState(false);
-  const { setIsLoggedIn, setToken, setRefreshToken, setUser } = useContext(AuthContext);
-  const navigation = useNavigation();
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
+  const [forgotPasswordPhone, setForgotPasswordPhone] = useState('');
 
-  const handleSendOTP = async () => {
+  const handleLogin = async () => {
     if (!phoneNumber) {
       Alert.alert('Lỗi', 'Vui lòng nhập số điện thoại');
       return;
     }
 
-    try {
-      setIsLoading(true);
-      console.log('Sending OTP for phone:', phoneNumber);
-      const response = await authService.sendRegistrationOTP(phoneNumber);
-      console.log('OTP sent successfully:', response);
-      setShowOTPInput(true);
-      Alert.alert('Thành công', 'OTP đã được gửi đến số điện thoại của bạn');
-    } catch (error) {
-      console.error('Error in handleSendOTP:', error);
-      Alert.alert('Lỗi', error.message || 'Có lỗi xảy ra khi gửi OTP');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleVerifyOTP = async () => {
-    if (!otp) {
-      Alert.alert('Lỗi', 'Vui lòng nhập OTP');
+    if (!password) {
+      Alert.alert('Lỗi', 'Vui lòng nhập mật khẩu');
       return;
     }
 
     try {
-      setIsLoading(true);
-      const response = await authService.loginWithPhone(phoneNumber, otp);
-      
-      // Lưu token và refresh token
-      setToken(response.token);
-      setRefreshToken(response.refreshToken);
-      setUser(response.user);
+      setLoading(true);
+      const credentials = {
+        phone: phoneNumber,
+        password: password
+      };
+      const response = await AuthService.login(credentials);
+      console.log('Login successful:', response);
       setIsLoggedIn(true);
+      navigation.replace('HomeTab');
     } catch (error) {
-      Alert.alert('Lỗi', error.message || 'Có lỗi xảy ra khi xác thực OTP');
+      console.error('Login error:', error);
+      Alert.alert('Lỗi', error.response?.data?.error || 'Đăng nhập thất bại');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!forgotPasswordPhone) {
+      Alert.alert('Lỗi', 'Vui lòng nhập số điện thoại');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await AuthService.forgotPassword(forgotPasswordPhone);
+      Alert.alert(
+        'Thành công',
+        'Mật khẩu mới đã được gửi đến số điện thoại của bạn',
+        [{ text: 'OK', onPress: () => setShowForgotPasswordModal(false) }]
+      );
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      Alert.alert('Lỗi', error.message || 'Không thể lấy lại mật khẩu');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-     {/* <StatusBar barStyle="light-content" backgroundColor="#0068FF" /> */}
+      <StatusBar barStyle="light-content" backgroundColor="#1877f2" />
       
       {/* Header with solid Zalo blue color */}
       <View style={styles.header}>
-        {/* Header content */}
         <View style={styles.headerContent}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color="white" />
+            <Ionicons name="arrow-back" size={24} color="white" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Đăng nhập</Text>
         </View>
@@ -97,7 +106,6 @@ const LoginScreen = () => {
             value={phoneNumber}
             onChangeText={setPhoneNumber}
             keyboardType="phone-pad"
-            editable={!showOTPInput}
           />
           {phoneNumber.length > 0 && (
             <TouchableOpacity 
@@ -107,29 +115,35 @@ const LoginScreen = () => {
               <Text style={styles.clearButtonText}>✕</Text>
             </TouchableOpacity>
           )}
-       
         </View>
 
-        {showOTPInput && (
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Mã OTP"
-              value={otp}
-              onChangeText={setOtp}
-              keyboardType="number-pad"
-            />
-          </View>
-        )}
+        {/* Password input */}
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Mật khẩu"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+          {password.length > 0 && (
+            <TouchableOpacity 
+              style={styles.clearButton}
+              onPress={() => setPassword('')}
+            >
+              <Text style={styles.clearButtonText}>✕</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
-        {/* Submit button - now circular with arrow */}
+        {/* Submit button - circular with arrow */}
         <View style={styles.submitButtonContainer}>
           <TouchableOpacity 
             style={styles.submitButton} 
-            onPress={showOTPInput ? handleVerifyOTP : handleSendOTP}
-            disabled={isLoading}
+            onPress={handleLogin}
+            disabled={loading}
           >
-            {isLoading ? (
+            {loading ? (
               <ActivityIndicator color="white" />
             ) : (
               <Ionicons name="arrow-forward" size={28} color="white" />
@@ -138,9 +152,61 @@ const LoginScreen = () => {
         </View>
 
         {/* Forgot password link */}
-        <TouchableOpacity style={styles.forgotPasswordContainer}>
+        <TouchableOpacity 
+          style={styles.forgotPasswordContainer}
+          onPress={() => setShowForgotPasswordModal(true)}
+        >
           <Text style={styles.forgotPasswordText}>Lấy lại mật khẩu</Text>
         </TouchableOpacity>
+
+        {/* Forgot Password Modal */}
+        <Modal
+          visible={showForgotPasswordModal}
+          transparent={true}
+          animationType="slide"
+          onRequestClose={() => setShowForgotPasswordModal(false)}
+          style={{ pointerEvents: 'box-none' }}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Lấy lại mật khẩu</Text>
+              <Text style={styles.modalDescription}>
+                Vui lòng nhập số điện thoại đã đăng ký để lấy lại mật khẩu
+              </Text>
+              
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Số điện thoại"
+                  value={forgotPasswordPhone}
+                  onChangeText={setForgotPasswordPhone}
+                  keyboardType="phone-pad"
+                />
+              </View>
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setShowForgotPasswordModal(false)}
+                >
+                  <Text style={styles.cancelButtonText}>Hủy</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.submitButton]}
+                  onPress={handleForgotPassword}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <Text style={styles.submitButtonText}>Xác nhận</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
 
         {/* FAQ link */}
         <View style={styles.faqContainer}>
@@ -179,10 +245,6 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 5,
   },
-  backButtonText: {
-    color: '#FFFFFF',
-    fontSize: 24,
-  },
   headerTitle: {
     color: '#FFFFFF',
     fontSize: 20,
@@ -212,9 +274,13 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
   },
   clearButton: {
     padding: 5,
+    position: 'absolute',
+    right: 15,
   },
   clearButtonText: {
     color: '#9E9E9E',
@@ -224,7 +290,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 80,
     right: 20,
-    // Thêm hiệu ứng đổ bóng cho container
     shadowColor: '#1877f2',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
@@ -232,22 +297,21 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   submitButton: {
-    width: 65,  // Changed to be perfectly circular
+    width: 65,
     height: 65,
-    borderRadius: 32.5, // Half of width/height for perfect circle
+    borderRadius: 32.5,
     backgroundColor: '#1877f2',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#4293f5',
-    elevation: 8, 
   },
   forgotPasswordContainer: {
     marginTop: 15,
     marginLeft: 15,
   },
   forgotPasswordText: {
-    color: '#0068FF', // Màu xanh của Zalo
+    color: '#1877f2',
     fontSize: 16,
   },
   faqContainer: {
@@ -275,7 +339,56 @@ const styles = StyleSheet.create({
     marginTop: 15,
   },
   linkText: {
-    color: '#0068FF',
+    color: '#1877f2',
+    fontSize: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    width: '80%',
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  modalDescription: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  modalButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 5,
+    marginHorizontal: 5,
+  },
+  cancelButton: {
+    backgroundColor: '#E0E0E0',
+  },
+  cancelButtonText: {
+    color: '#666',
+    textAlign: 'center',
+    fontSize: 16,
+  },
+  submitButtonText: {
+    color: 'white',
+    textAlign: 'center',
     fontSize: 16,
   },
 });

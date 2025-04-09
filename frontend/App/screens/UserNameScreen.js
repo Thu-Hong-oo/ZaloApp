@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -6,10 +6,16 @@ import {
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
-  Alert
+  StatusBar,
+  Alert,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import authService from '../services/auth-service'; // Đảm bảo nhập đúng authService
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { AuthContext } from '../App';
+import authService from '../services/auth-service';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import TokenService from '../services/token-service';
 
 const UserNameScreen = ({ route, navigation }) => {
   const { phoneNumber } = route.params || {}; 
@@ -19,6 +25,7 @@ const UserNameScreen = ({ route, navigation }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const { setToken, setRefreshToken, setUser, setIsLoggedIn } = useContext(AuthContext);
 
   const formatPhoneNumber = (phoneNumber) => {
     // Nếu số điện thoại bắt đầu bằng +84, thay +84 bằng 0
@@ -41,7 +48,6 @@ const UserNameScreen = ({ route, navigation }) => {
   };
 
   const handleContinue = async () => {
-    // Kiểm tra Họ tên và Số điện thoại
     if (!fullName.trim()) {
       Alert.alert('Lỗi', 'Vui lòng nhập họ tên');
       return;
@@ -51,9 +57,26 @@ const UserNameScreen = ({ route, navigation }) => {
       Alert.alert('Lỗi', 'Vui lòng nhập mật khẩu');
       return;
     }
+
+    // Kiểm tra độ dài mật khẩu
+    if (password.length < 6) {
+      Alert.alert('Lỗi', 'Mật khẩu phải có ít nhất 6 ký tự');
+      return;
+    }
   
     if (password !== confirmPassword) {
-      Alert.alert('Lỗi', 'Mật khẩu và xác nhận mật khẩu không khớp');
+      Alert.alert(
+        'Mật khẩu không khớp',
+        'Mật khẩu và xác nhận mật khẩu không giống nhau. Vui lòng nhập lại.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              setConfirmPassword(''); // Xóa trường xác nhận mật khẩu
+            }
+          }
+        ]
+      );
       return;
     }
   
@@ -75,16 +98,39 @@ const UserNameScreen = ({ route, navigation }) => {
       const response = await authService.completeRegistration({
         phoneNumber: formattedPhoneNumber,
         fullName,
-        password, // Gửi mật khẩu cùng với thông tin khác
+        password,
       });
   
       console.log('Đăng ký thành công, response:', response);
-      // Nếu đăng ký thành công, chuyển đến màn hình chính
+      // Nếu đăng ký thành công, lưu token và chuyển đến màn hình EnterProfileInfor
       if (response.success) {
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'EnterProfileInfor' }],
+        console.log('Registration response:', response); // Log toàn bộ response
+        console.log('Token from registration:', response.accessToken);
+        console.log('Refresh token from registration:', response.refreshToken);
+        
+        // Lưu token và refresh token vào AsyncStorage sử dụng TokenService
+        const tokenSaved = await TokenService.saveTokens(response.accessToken, response.refreshToken);
+        console.log('Tokens saved successfully:', tokenSaved);
+        
+        // Kiểm tra token đã lưu
+        const savedToken = await TokenService.getAccessToken();
+        console.log('Verified saved token:', savedToken);
+        
+        await AsyncStorage.setItem('userData', JSON.stringify({
+          phoneNumber: formattedPhoneNumber,
+          fullName
+        }));
+        
+        // Cập nhật state
+        setToken(response.accessToken);
+        setRefreshToken(response.refreshToken);
+        setUser({
+          phoneNumber: formattedPhoneNumber,
+          fullName
         });
+        
+        // Chuyển đến màn hình EnterProfileInfor để cập nhật thông tin cá nhân
+        navigation.navigate('EnterProfileInfor');
       } else {
         Alert.alert('Lỗi', response.message || 'Có lỗi xảy ra khi đăng ký');
       }

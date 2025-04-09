@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,14 +8,32 @@ import {
   Modal,
   ScrollView,
   FlatList,
+  Alert,
+  ActivityIndicator,
+  Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import UserService from '../services/user-service';
+import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AuthContext } from '../App';
+import TokenService from '../services/token-service';
+import axios from 'axios';
 
 const PersonalInfoScreen = () => {
+  const navigation = useNavigation();
+  const { setIsLoggedIn } = useContext(AuthContext);
+  const [fullName, setFullName] = useState('');
+  const [selectedGender, setSelectedGender] = useState('');
+  const [selectedDate, setSelectedDate] = useState(new Date('1990-01-01'));
+  const [selectedAvatar, setSelectedAvatar] = useState(null);
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [birthDate, setBirthDate] = useState('1/1/1990');
   const [gender, setGender] = useState('Nam');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showGenderPicker, setShowGenderPicker] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [userData, setUserData] = useState(null);
   
   // State for date picker
   const [selectedDay, setSelectedDay] = useState(1);
@@ -27,14 +45,144 @@ const PersonalInfoScreen = () => {
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
   const years = Array.from({ length: 100 }, (_, i) => 2023 - i);
 
+  useEffect(() => {
+    // Kiểm tra token khi component mount
+    const checkToken = async () => {
+      try {
+        const token = await TokenService.getAccessToken();
+        console.log('Current token:', token);
+        
+        if (!token) {
+          console.log('No token found, redirecting to login');
+          navigation.replace('Login');
+          return;
+        }
+
+        const isValid = await TokenService.isTokenValid(token);
+        console.log('Token validity:', isValid);
+        
+        if (!isValid) {
+          console.log('Token is invalid, attempting to refresh');
+          // Thử refresh token
+          const refreshed = await refreshToken();
+          if (!refreshed) {
+            console.log('Token refresh failed, redirecting to login');
+            navigation.replace('Login');
+            return;
+          }
+        }
+
+        // Load user data
+        const storedUserData = await AsyncStorage.getItem('userData');
+        if (storedUserData) {
+          setUserData(JSON.parse(storedUserData));
+        }
+      } catch (error) {
+        console.error('Error checking token:', error);
+        navigation.replace('Login');
+      }
+    };
+
+    checkToken();
+  }, []);
+
+  const refreshToken = async () => {
+    try {
+      const refreshToken = await TokenService.getRefreshToken();
+      console.log('Attempting to refresh token with:', refreshToken);
+      
+      if (!refreshToken) {
+        console.log('No refresh token available');
+        return false;
+      }
+
+      // Cập nhật endpoint refresh token
+      const response = await axios.post(`${API_URL}/auth/refresh`, {
+        refreshToken: refreshToken
+      });
+
+      console.log('Refresh token response:', response.data);
+
+      if (response.data && response.data.accessToken) {
+        console.log('New access token received:', response.data.accessToken);
+        await TokenService.saveTokens(response.data.accessToken, response.data.refreshToken);
+        return true;
+      }
+
+      console.log('Invalid refresh token response:', response.data);
+      return false;
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      if (error.response) {
+        console.error('Refresh error details:', {
+          status: error.response.status,
+          data: error.response.data
+        });
+      }
+      return false;
+    }
+  };
+
   const handleSelectDate = () => {
     setBirthDate(`${selectedDay}/${selectedMonth}/${selectedYear}`);
+    setSelectedDate(new Date(`${selectedYear}-${selectedMonth}-${selectedDay}`));
     setShowDatePicker(false);
   };
 
   const handleSelectGender = (selectedGender) => {
     setGender(selectedGender);
+    setSelectedGender(selectedGender); 
     setShowGenderPicker(false);
+  };
+  
+
+  const handleContinue = async () => {
+    try {
+      // Kiểm tra token trước khi cập nhật
+      const token = await TokenService.getAccessToken();
+      console.log('Token before update:', token);
+
+      if (!token) {
+        Alert.alert('Lỗi', 'Bạn cần đăng nhập lại');
+        navigation.navigate('Login');
+        return;
+      }
+
+      // Kiểm tra token có hợp lệ không
+      const isValid = await TokenService.isTokenValid();
+      if (!isValid) {
+        Alert.alert('Lỗi', 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại');
+        navigation.navigate('Login');
+        return;
+      }
+
+      // Chuẩn bị dữ liệu cập nhật
+      const userData = {
+        phoneNumber: phoneNumber,
+        fullName: fullName,
+        gender: gender,
+        dateOfBirth: selectedDate.toISOString().split('T')[0],
+        avatar: `https://ui-avatars.com/api/?name=${fullName}`
+      };
+
+      console.log('Updating profile with data:', userData);
+      const response = await UserService.updateProfile(userData);
+      console.log('Profile update response:', response);
+
+      if (response.success) {
+        // Chuyển đến màn hình chính sau khi cập nhật thành công
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'UpdateAvatar' }]
+        });
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      Alert.alert(
+        'Lỗi',
+        error.message || 'Có lỗi xảy ra khi cập nhật thông tin'
+      );
+    }
   };
 
   const renderDateColumn = (data, selectedValue, setSelectedValue) => {
@@ -109,8 +257,14 @@ const PersonalInfoScreen = () => {
 
       {/* Continue Button */}
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.continueButton}>
-          <Text style={styles.continueButtonText}>Tiếp tục</Text>
+        <TouchableOpacity 
+          style={[styles.continueButton, isLoading && styles.disabledButton]}
+          onPress={handleContinue}
+          disabled={isLoading}
+        >
+          <Text style={styles.continueButtonText}>
+            {isLoading ? 'Đang cập nhật...' : 'Tiếp tục'}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -318,6 +472,9 @@ const styles = StyleSheet.create({
   genderOptionText: {
     fontSize: 16,
     color: '#000000',
+  },
+  disabledButton: {
+    backgroundColor: '#999999',
   },
 });
 
